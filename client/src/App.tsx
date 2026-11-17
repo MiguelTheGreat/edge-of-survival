@@ -24,10 +24,12 @@ import {
 } from './types/game';
 
 const INITIAL_THREATS: ThreatCube[] = [
-  { id: 't1', position: [27.5, 2.8, -3.5], label: 'Spoofed Sensor' },
-  { id: 't2', position: [30.5, 3.0, 3.2], label: 'Firmware Tamper' },
-  { id: 't3', position: [32.0, 2.7, -1.2], label: 'MITM Replay' },
-  { id: 't4', position: [28.8, 3.1, 1.8], label: 'Raw Data Leak' },
+  { id: 't1', position: [48.5, 3.1, -3.8], label: 'Spoofed Sensor' },
+  { id: 't2', position: [52.0, 3.4, 3.6], label: 'Firmware Tamper' },
+  { id: 't3', position: [54.2, 3.0, -1.5], label: 'MITM Replay' },
+  { id: 't4', position: [49.8, 3.5, 1.8], label: 'Raw Data Leak' },
+  { id: 't5', position: [53.2, 3.8, -3.2], label: 'Rogue OTA Push' },
+  { id: 't6', position: [51.0, 3.9, 0.2], label: 'DDoS Flood Packet' },
 ];
 
 export function App() {

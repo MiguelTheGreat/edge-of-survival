@@ -31,12 +31,15 @@ function getPlatformHeight(x: number): number {
   if (x < 3) return 0.5;
   if (x < 16) return 0.8;
   if (x < 24) return 1.1;
-  return 1.5;
+  if (x < 46) return 1.35; // Long Skyway Bridge
+  return 1.8; // Separate Final Stage: Valley Dam
 }
 
 function clampPosition(x: number, z: number): [number, number] {
-  const cx = Math.max(-17.5, Math.min(33.5, x));
-  const cz = Math.max(-7.2, Math.min(7.2, z));
+  const cx = Math.max(-17.5, Math.min(56.5, x));
+  const inLongBridge = cx >= 24 && cx <= 46;
+  const maxZ = inLongBridge ? 2.1 : 7.2;
+  const cz = Math.max(-maxZ, Math.min(maxZ, z));
   return [cx, cz];
 }
 
@@ -135,9 +138,13 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
         const nz = pos.z + (dz / Math.max(1, len)) * speed * dt;
 
         const bridgeActive = solvedStations.includes('ch3-calibration');
+        const skywayActive = solvedStations.includes('ch6-compression');
         let allowedX = nx;
         if (!bridgeActive && pos.x <= 3.1 && nx > 3.1) {
           allowedX = 3.1;
+        }
+        if (!skywayActive && pos.x <= 23.8 && nx > 23.8) {
+          allowedX = 23.8;
         }
 
         const [cx, cz] = clampPosition(allowedX, nz);
@@ -174,10 +181,12 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
       groupRef.current.position.copy(pos);
     }
 
-    // 45-degree angled isometric-style follow camera
-    const camTarget = new THREE.Vector3(pos.x + 0.6, pos.y + 10.8, pos.z + 11.8);
-    camera.position.lerp(camTarget, 5.5 * dt);
-    camera.lookAt(pos.x, pos.y + 0.9, pos.z);
+    // 45-degree angled isometric-style follow camera (pulls back at Valley Dam for dramatic scale)
+    const inFinalDam = pos.x > 44;
+    const camOffset = inFinalDam ? new THREE.Vector3(1.5, 13.5, 15.2) : new THREE.Vector3(0.6, 10.8, 11.8);
+    const camTarget = new THREE.Vector3(pos.x + camOffset.x, pos.y + camOffset.y, pos.z + camOffset.z);
+    camera.position.lerp(camTarget, 4.5 * dt);
+    camera.lookAt(pos.x + (inFinalDam ? 1.2 : 0), pos.y + 0.9, pos.z);
 
     // Orbiting wrist rings (Ch 3+)
     const t = state.clock.elapsedTime;
@@ -357,16 +366,16 @@ const CavernMotes: React.FC = () => {
 };
 
 const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
-  const count = 300;
+  const count = 500;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const drops = useMemo(
     () =>
       Array.from({ length: count }, () => ({
-        x: 24 + Math.random() * 12,
-        y: Math.random() * 10 + 1,
-        z: (Math.random() - 0.5) * 16,
-        speed: 12 + Math.random() * 6,
+        x: 42 + Math.random() * 18,
+        y: Math.random() * 12 + 1.5,
+        z: (Math.random() - 0.5) * 18,
+        speed: 14 + Math.random() * 7,
       })),
     []
   );
@@ -377,11 +386,11 @@ const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
     for (let i = 0; i < count; i++) {
       const d = drops[i];
       d.y -= d.speed * dt;
-      if (d.y < 1.2) {
-        d.y = 10 + Math.random() * 3;
+      if (d.y < 1.5) {
+        d.y = 11 + Math.random() * 3;
       }
       dummy.position.set(d.x, d.y, d.z);
-      dummy.rotation.set(0, 0, 0.15);
+      dummy.rotation.set(0, 0, 0.18);
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
     }
@@ -392,10 +401,28 @@ const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <boxGeometry args={[0.025, 0.5, 0.025]} />
-      <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} />
+      <boxGeometry args={[0.028, 0.58, 0.028]} />
+      <meshBasicMaterial color="#38bdf8" transparent opacity={0.65} />
     </instancedMesh>
   );
+};
+
+const StormLightning: React.FC<{ active: boolean }> = ({ active }) => {
+  const lightRef = useRef<THREE.PointLight>(null);
+  const flashRef = useRef<number>(0);
+
+  useFrame((_, delta) => {
+    if (!lightRef.current || !active) return;
+    if (flashRef.current > 0) {
+      flashRef.current = Math.max(0, flashRef.current - delta * 28);
+      lightRef.current.intensity = flashRef.current;
+    } else if (Math.random() < 0.012) {
+      flashRef.current = 18 + Math.random() * 14;
+    }
+  });
+
+  if (!active) return null;
+  return <pointLight ref={lightRef} position={[52, 11, -2]} color="#bae6fd" intensity={0} distance={38} />;
 };
 
 const StonePillar: React.FC<{ position: [number, number, number]; glowColor?: string }> = ({
@@ -528,25 +555,20 @@ const StationPedestal: React.FC<{
         </group>
       )}
 
-      {/* 2.5D Billboarded Floating Label */}
-      {!hideLabels && (
-        <Html position={[0, 2.6, 0]} center distanceFactor={14} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+      {/* 2.5D Billboarded Floating Label — No spoilers before completion */}
+      {!hideLabels && (solved || (isNear && unlocked)) && (
+        <Html position={[0, 2.55, 0]} center distanceFactor={14} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap border backdrop-blur-md transition-all ${
+            className={`px-3 py-1 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap border backdrop-blur-md transition-all ${
               solved
                 ? 'bg-emerald-950/85 border-emerald-400/60 text-emerald-200'
-                : unlocked
-                ? isNear
-                  ? 'bg-cyan-900/95 border-cyan-300 text-white scale-110 shadow-lg shadow-cyan-500/30'
-                  : 'bg-slate-900/85 border-cyan-500/40 text-cyan-200'
-                : 'bg-slate-950/75 border-slate-700 text-slate-500'
+                : 'bg-cyan-900/95 border-cyan-300 text-white shadow-lg shadow-cyan-500/30'
             }`}
           >
-            <div>Ch {station.chapterNumber}: {station.subtitle}</div>
-            {isNear && unlocked && (
-              <div className="text-[10px] text-amber-300 text-center mt-0.5">
-                Press [E] / Click to Engage
-              </div>
+            {solved ? (
+              <div>✓ Ch {station.chapterNumber} Cleared</div>
+            ) : (
+              <div className="text-amber-300">Engage Pedestal [E] / Click</div>
             )}
           </div>
         </Html>
@@ -721,46 +743,117 @@ const SceneContent: React.FC<GameWorldProps> = ({
         <pointLight position={[20, 4.2, -1]} color="#ef4444" intensity={12} distance={11} />
       )}
 
-      {/* ACT III: Outdoor Valley Dam Deck + Buttresses */}
-      <mesh position={[29.5, 1.0, 0]} receiveShadow>
-        <boxGeometry args={[11, 1, 16]} />
-        <meshStandardMaterial color="#182235" roughness={0.75} metalness={0.25} />
-      </mesh>
-      {/* Dam Concrete Buttresses */}
-      {[-5.5, 0, 5.5].map((zPos, i) => (
-        <mesh key={i} position={[34.8, 2.2, zPos]} castShadow>
-          <boxGeometry args={[1.2, 2.6, 1.1]} />
-          <meshStandardMaterial color="#334155" roughness={0.7} />
+      {/* LONG SKYWAY BRIDGE (x = 24 to x = 46) leading to the Separate Final Stage */}
+      <group>
+        {/* Main Bridge Deck */}
+        <mesh position={[35, 0.85, 0]} receiveShadow>
+          <boxGeometry args={[22, 0.95, 4.6]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.35} />
         </mesh>
-      ))}
+        {/* Glowing Bridge Floor Conduit */}
+        <mesh position={[35, 1.36, 0]}>
+          <boxGeometry args={[22, 0.06, 0.5]} />
+          <meshStandardMaterial
+            color={ch6Solved ? '#10b981' : '#ef4444'}
+            emissive={ch6Solved ? '#10b981' : '#ef4444'}
+            emissiveIntensity={ch6Solved ? 2.0 : 0.7}
+          />
+        </mesh>
+        {/* Energy Guardrails */}
+        {[-2.2, 2.2].map((zRail, rIdx) => (
+          <mesh key={rIdx} position={[35, 1.85, zRail]}>
+            <boxGeometry args={[22, 0.08, 0.08]} />
+            <meshStandardMaterial
+              color={ch6Solved ? '#2dd4bf' : '#475569'}
+              emissive={ch6Solved ? '#06b6d4' : '#334155'}
+              emissiveIntensity={ch6Solved ? 1.8 : 0.2}
+            />
+          </mesh>
+        ))}
+        {/* 5 Pairs of Towering Bridge Pylons */}
+        {[26, 30.5, 35, 39.5, 44].map((xPylon, pIdx) => (
+          <group key={pIdx} position={[xPylon, 1.35, 0]}>
+            {[-2.35, 2.35].map((zPylon, sIdx) => (
+              <group key={sIdx} position={[0, 0, zPylon]}>
+                <mesh position={[0, 1.4, 0]} castShadow>
+                  <cylinderGeometry args={[0.2, 0.28, 2.8, 8]} />
+                  <meshStandardMaterial color="#1e293b" metalness={0.5} />
+                </mesh>
+                <mesh position={[0, 2.9, 0]}>
+                  <octahedronGeometry args={[0.22, 0]} />
+                  <meshStandardMaterial
+                    color={ch6Solved ? '#2dd4bf' : '#f59e0b'}
+                    emissive={ch6Solved ? '#06b6d4' : '#f59e0b'}
+                    emissiveIntensity={2.0}
+                  />
+                </mesh>
+              </group>
+            ))}
+          </group>
+        ))}
+        {/* Bridge Entry Gate (Red until Ch 6 is solved) */}
+        {!ch6Solved && (
+          <mesh position={[24.1, 2.1, 0]}>
+            <boxGeometry args={[0.2, 1.8, 4.4]} />
+            <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.5} transparent opacity={0.35} />
+          </mesh>
+        )}
+      </group>
 
-      {/* Floodwater Plane */}
-      <mesh position={[33.2, damRaised ? 0.15 : 1.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[8.5, 22]} />
+      {/* ACT III: SEPARATE FINAL STAGE — VALLEY DAM OVERLOOK (x = 46 to x = 59) */}
+      <mesh position={[52.5, 1.3, 0]} receiveShadow>
+        <boxGeometry args={[13, 1, 17]} />
+        <meshStandardMaterial color="#151e30" roughness={0.75} metalness={0.3} />
+      </mesh>
+      {/* Massive Dam Concrete Buttresses + Pulsing Emergency Beacons */}
+      {[-6.2, -2.1, 2.1, 6.2].map((zPos, i) => (
+        <group key={i} position={[58.5, 2.7, zPos]}>
+          <mesh castShadow>
+            <boxGeometry args={[1.4, 3.2, 1.3]} />
+            <meshStandardMaterial color="#334155" roughness={0.7} metalness={0.3} />
+          </mesh>
+          <mesh position={[0, 1.8, 0]}>
+            <sphereGeometry args={[0.25, 12, 12]} />
+            <meshStandardMaterial
+              color={damRaised ? '#10b981' : '#ef4444'}
+              emissive={damRaised ? '#10b981' : '#ef4444'}
+              emissiveIntensity={2.6}
+            />
+          </mesh>
+        </group>
+      ))}
+      {!damRaised && ch6Solved && (
+        <pointLight position={[55, 5.5, 0]} color="#ef4444" intensity={10} distance={18} />
+      )}
+
+      {/* Surging Multi-Layer Floodwater */}
+      <mesh position={[56.5, damRaised ? 0.35 : 1.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[11, 26]} />
         <meshStandardMaterial
           color="#0284c7"
           emissive="#0369a1"
-          emissiveIntensity={0.45}
+          emissiveIntensity={0.55}
           transparent
-          opacity={0.78}
+          opacity={0.82}
         />
       </mesh>
 
-      {/* Twin 3D Hydraulic Floodgates */}
-      {[-3.0, 3.0].map((zPos, idx) => (
-        <mesh key={idx} position={[34.2, damRaised ? 3.9 : 1.85, zPos]} castShadow>
-          <boxGeometry args={[0.8, 2.8, 4.5]} />
+      {/* Twin Massive Hydraulic Floodgates */}
+      {[-3.4, 3.4].map((zPos, idx) => (
+        <mesh key={idx} position={[57.6, damRaised ? 4.4 : 2.1, zPos]} castShadow>
+          <boxGeometry args={[0.9, 3.2, 5.2]} />
           <meshStandardMaterial
             color={damRaised ? '#10b981' : '#f59e0b'}
             emissive={damRaised ? '#10b981' : '#f59e0b'}
-            emissiveIntensity={0.65}
-            metalness={0.55}
+            emissiveIntensity={0.75}
+            metalness={0.6}
           />
         </mesh>
       ))}
 
-      {/* Rain particles in Act III */}
-      <StormRainParticles active={climaxActive || solvedStations.includes('ch6-compression')} />
+      {/* Heavy Storm Rain & Lightning Flashes at the Valley Dam */}
+      <StormRainParticles active={climaxActive || ch6Solved} />
+      <StormLightning active={climaxActive || (ch6Solved && !damRaised)} />
 
       {/* Clickable Red Cyber Spoofing Cubes during Climax */}
       {climaxActive &&

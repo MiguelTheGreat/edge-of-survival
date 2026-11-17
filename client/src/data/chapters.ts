@@ -66,7 +66,7 @@ export const STATIONS: StationConfig[] = [
     act: 3,
     title: 'Chapter 7 & Climax: Valley Dam',
     subtitle: 'Become The Man of Edge',
-    position: [29, 1.5, 0],
+    position: [51, 1.8, 0],
     accentColor: '#10b981',
     requiredSolvedBefore: 'ch6-compression',
   },
