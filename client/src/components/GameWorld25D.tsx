@@ -22,6 +22,7 @@ interface GameWorldProps {
   joystickVectorRef: React.MutableRefObject<{ x: number; y: number }>;
   interactSignal: number;
   damRaised: boolean;
+  hideLabels?: boolean;
 }
 
 function getPlatformHeight(x: number): number {
@@ -320,8 +321,9 @@ const StationPedestal: React.FC<{
   solved: boolean;
   unlocked: boolean;
   isNear: boolean;
+  hideLabels?: boolean;
   onClick: () => void;
-}> = ({ station, solved, unlocked, isNear, onClick }) => {
+}> = ({ station, solved, unlocked, isNear, hideLabels, onClick }) => {
   const crystalRef = useRef<THREE.Mesh>(null);
   const holoRef = useRef<THREE.Mesh>(null);
 
@@ -404,26 +406,28 @@ const StationPedestal: React.FC<{
       )}
 
       {/* 2.5D Billboarded Floating Label */}
-      <Html position={[0, 2.55, 0]} center distanceFactor={14} style={{ pointerEvents: 'none' }}>
-        <div
-          className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide whitespace-nowrap border backdrop-blur-md transition-all ${
-            solved
-              ? 'bg-emerald-950/85 border-emerald-400/60 text-emerald-200'
-              : unlocked
-              ? isNear
-                ? 'bg-cyan-900/95 border-cyan-300 text-white scale-110 shadow-lg shadow-cyan-500/30'
-                : 'bg-slate-900/85 border-cyan-500/40 text-cyan-200'
-              : 'bg-slate-950/75 border-slate-700 text-slate-500'
-          }`}
-        >
-          <div>Ch {station.chapterNumber}: {station.subtitle}</div>
-          {isNear && unlocked && (
-            <div className="text-[10px] text-amber-300 text-center mt-0.5">
-              Press [E] / Click to Engage
-            </div>
-          )}
-        </div>
-      </Html>
+      {!hideLabels && (
+        <Html position={[0, 2.55, 0]} center distanceFactor={14} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+          <div
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap border backdrop-blur-md transition-all ${
+              solved
+                ? 'bg-emerald-950/85 border-emerald-400/60 text-emerald-200'
+                : unlocked
+                ? isNear
+                  ? 'bg-cyan-900/95 border-cyan-300 text-white scale-110 shadow-lg shadow-cyan-500/30'
+                  : 'bg-slate-900/85 border-cyan-500/40 text-cyan-200'
+                : 'bg-slate-950/75 border-slate-700 text-slate-500'
+            }`}
+          >
+            <div>Ch {station.chapterNumber}: {station.subtitle}</div>
+            {isNear && unlocked && (
+              <div className="text-[10px] text-amber-300 text-center mt-0.5">
+                Press [E] / Click to Engage
+              </div>
+            )}
+          </div>
+        </Html>
+      )}
     </group>
   );
 };
@@ -439,6 +443,7 @@ const SceneContent: React.FC<GameWorldProps> = ({
   joystickVectorRef,
   interactSignal,
   damRaised,
+  hideLabels,
 }) => {
   const playerPosRef = useRef<THREE.Vector3>(new THREE.Vector3(-15.5, 0, 4));
   const [nearId, setNearId] = React.useState<StationId | null>(null);
@@ -599,14 +604,16 @@ const SceneContent: React.FC<GameWorldProps> = ({
               <boxGeometry args={[0.9, 0.9, 0.9]} />
               <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.5} />
             </mesh>
-            <Html position={[0, 0.85, 0]} center distanceFactor={14}>
-              <button
-                onClick={() => onInterceptThreat(threat.id)}
-                className="px-2 py-0.5 rounded bg-red-600/90 hover:bg-emerald-600 text-white text-[10px] font-bold border border-red-300 shadow cursor-pointer whitespace-nowrap"
-              >
-                SHIELD: {threat.label}
-              </button>
-            </Html>
+            {!hideLabels && (
+              <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
+                <button
+                  onClick={() => onInterceptThreat(threat.id)}
+                  className="px-2.5 py-0.5 rounded-md bg-red-600/90 hover:bg-emerald-600 text-white text-[10px] font-bold border border-red-300 shadow cursor-pointer whitespace-nowrap"
+                >
+                  SHIELD: {threat.label}
+                </button>
+              </Html>
+            )}
           </group>
         ))}
 
@@ -622,6 +629,7 @@ const SceneContent: React.FC<GameWorldProps> = ({
             solved={solved}
             unlocked={unlocked}
             isNear={nearId === station.id}
+            hideLabels={hideLabels}
             onClick={() => onSelectStation(station.id)}
           />
         );

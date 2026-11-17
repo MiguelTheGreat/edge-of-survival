@@ -24,7 +24,7 @@ export const LeaderboardModal: React.FC<Props> = ({ currentNickname, onClose }) 
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
       <div className="w-full max-w-3xl bg-slate-900 border border-amber-400/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -53,7 +53,7 @@ export const LeaderboardModal: React.FC<Props> = ({ currentNickname, onClose }) 
         <div className="p-4 overflow-y-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-mono uppercase">
+              <tr className="border-b border-slate-800 text-slate-400 font-display tabular-nums uppercase">
                 <th className="py-2 px-2">#</th>
                 <th className="py-2 px-2">Engineer</th>
                 <th className="py-2 px-2">Status</th>
@@ -67,7 +67,7 @@ export const LeaderboardModal: React.FC<Props> = ({ currentNickname, onClose }) 
                 const isMe = row.nickname.toLowerCase() === currentNickname.toLowerCase();
                 return (
                   <tr key={row.id} className={isMe ? 'bg-cyan-950/40 text-cyan-200' : 'text-slate-200'}>
-                    <td className="py-2.5 px-2 font-mono font-bold text-amber-400">{row.rank}</td>
+                    <td className="py-2.5 px-2 font-display tabular-nums font-bold text-amber-400">{row.rank}</td>
                     <td className="py-2.5 px-2 font-semibold">
                       {row.nickname} {isMe && <span className="text-[10px] text-cyan-400">(You)</span>}
                     </td>
@@ -80,11 +80,11 @@ export const LeaderboardModal: React.FC<Props> = ({ currentNickname, onClose }) 
                         <span className="text-slate-400">Ch {row.currentChapter}/12</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-2 font-mono text-cyan-300">
+                    <td className="py-2.5 px-2 font-display tabular-nums text-cyan-300">
                       {row.bestLatencyMs < 900 ? `${row.bestLatencyMs.toFixed(1)} ms` : '∞ ms'}
                     </td>
-                    <td className="py-2.5 px-2 font-mono">{row.bandwidthSavedPct.toFixed(0)}%</td>
-                    <td className="py-2.5 px-2 font-mono text-emerald-300">{row.securityScore}</td>
+                    <td className="py-2.5 px-2 font-display tabular-nums">{row.bandwidthSavedPct.toFixed(0)}%</td>
+                    <td className="py-2.5 px-2 font-display tabular-nums text-emerald-300">{row.securityScore}</td>
                   </tr>
                 );
               })}

@@ -15,15 +15,15 @@ export const TitleScreen: React.FC<Props> = ({ onStart, loading }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.18),_transparent_55%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.14),_transparent_50%)] pointer-events-none" />
 
       <div className="relative w-full max-w-xl bg-slate-900/90 border border-cyan-500/40 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center justify-between mb-4">
-          <span className="px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono tracking-wider">
+          <span className="px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-display tabular-nums tracking-wider">
             2.5D EDGE COMPUTING &amp; EDGE AI
           </span>
-          <span className="text-xs text-slate-400 font-mono">Abad • Chua • Napiza</span>
+          <span className="text-xs text-slate-400 font-display tabular-nums">Abad • Chua • Napiza</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
@@ -34,7 +34,7 @@ export const TitleScreen: React.FC<Props> = ({ onStart, loading }) => {
         </p>
 
         <div className="mt-5 p-4 rounded-2xl bg-slate-950/75 border border-slate-800 space-y-2 text-xs text-slate-300 leading-relaxed">
-          <div className="flex items-center gap-2 text-red-400 font-mono font-bold">
+          <div className="flex items-center gap-2 text-red-400 font-display tabular-nums font-bold">
             <WifiOff className="w-4 h-4" /> CAPITAL UPLINK: SEVERED (LATENCY: ∞ ms)
           </div>
           <p>

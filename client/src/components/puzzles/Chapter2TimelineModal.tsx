@@ -57,11 +57,11 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-      <div className="w-full max-w-2xl bg-slate-900 border border-cyan-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+      <div className="w-full max-w-2xl bg-slate-900 border border-cyan-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="px-6 py-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">
+            <span className="text-xs font-display font-semibold uppercase tracking-widest text-cyan-400">
               Chapter 2 • Evolution (“The power... It attracts me.”)
             </span>
             <h2 className="text-xl font-bold text-white mt-0.5">Hologram Altar: Computing Timeline</h2>
@@ -71,34 +71,34 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-3">
+        <div className="px-6 py-4 overflow-y-auto space-y-3">
           <p className="text-sm text-slate-300">
             A towering 3D wireframe hologram erupts from the altar. Arrange the 8 computing eras in chronological order
             from earliest to modern <strong className="text-cyan-300">Edge AI &amp; TinyML</strong>.
           </p>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5 pb-1">
             {items.map((item, idx) => {
               const inRightSpot = item.order === idx + 1;
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border transition ${
+                  className={`flex items-center justify-between px-3.5 py-2 rounded-xl border transition ${
                     inRightSpot
                       ? 'bg-emerald-950/35 border-emerald-500/40'
                       : 'bg-slate-800/70 border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-slate-950 border border-slate-700 text-xs font-mono flex items-center justify-center text-cyan-300">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-6 h-6 rounded-full bg-slate-950 border border-slate-700 text-xs font-semibold tabular-nums flex items-center justify-center text-cyan-300 shrink-0">
                       {idx + 1}
                     </span>
-                    <div>
-                      <span className="text-xs font-mono font-bold text-cyan-300 mr-2">{item.era}</span>
+                    <div className="truncate sm:whitespace-normal">
+                      <span className="text-xs font-display font-bold tabular-nums text-cyan-300 mr-2">{item.era}</span>
                       <span className="text-xs text-slate-200">{item.label}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
                     <button
                       onClick={() => move(idx, -1)}
                       disabled={idx === 0}
@@ -128,7 +128,7 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
           )}
         </div>
 
-        <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between shrink-0">
           <button
             onClick={() => setItems([...CORRECT_ERAS])}
             className="text-xs text-slate-400 hover:text-cyan-300 underline cursor-pointer"

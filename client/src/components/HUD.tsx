@@ -72,13 +72,13 @@ export const HUD: React.FC<Props> = ({
         {/* Left: Player & Telemetry */}
         <div className="pointer-events-auto flex flex-wrap items-center gap-2 bg-slate-950/85 border border-cyan-500/35 rounded-2xl px-3.5 py-2 backdrop-blur-md shadow-xl">
           <div className="pr-2 border-r border-slate-800">
-            <div className="text-[10px] font-mono uppercase text-cyan-400">
+            <div className="text-[10px] font-display tabular-nums uppercase text-cyan-400">
               {run.completed ? 'MAN OF EDGE' : `CHAPTER ${run.currentChapter} / 12`}
             </div>
             <div className="text-xs font-bold text-white">{nickname}</div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-mono">
+          <div className="flex items-center gap-3 text-xs font-display tabular-nums">
             <div>
               <span className="text-slate-400 text-[10px] block">LATENCY</span>
               <span className={run.bestLatencyMs < 10 ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
@@ -107,7 +107,7 @@ export const HUD: React.FC<Props> = ({
         {/* Right: Actions */}
         <div className="pointer-events-auto flex items-center gap-2">
           <span
-            className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono border backdrop-blur-md ${
+            className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-display tabular-nums border backdrop-blur-md ${
               mode === 'live'
                 ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
                 : 'bg-slate-900/85 border-slate-700 text-slate-300'

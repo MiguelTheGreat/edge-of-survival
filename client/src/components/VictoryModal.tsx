@@ -18,13 +18,13 @@ export const VictoryModal: React.FC<Props> = ({
   onContinueExplore,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 overflow-y-auto">
       <div className="w-full max-w-3xl bg-slate-900 border border-emerald-400/60 rounded-3xl p-7 shadow-2xl space-y-5 my-auto">
         <div className="flex items-center justify-between">
-          <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-300 text-xs font-display tabular-nums font-bold flex items-center gap-1.5">
             <Award className="w-4 h-4" /> EPILOGUE &amp; CHAPTERS 8, 11, 12 UNLOCKED
           </span>
-          <span className="text-xs font-mono text-slate-400">Engineer: {nickname}</span>
+          <span className="text-xs font-display tabular-nums text-slate-400">Engineer: {nickname}</span>
         </div>
 
         <div>
@@ -41,25 +41,25 @@ export const VictoryModal: React.FC<Props> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
             <div className="text-[11px] text-slate-400">Final Latency</div>
-            <div className="text-xl font-mono font-black text-emerald-400">
+            <div className="text-xl font-display tabular-nums font-black text-emerald-400">
               {run.bestLatencyMs.toFixed(1)} ms
             </div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
             <div className="text-[11px] text-slate-400">Bandwidth Saved</div>
-            <div className="text-xl font-mono font-black text-cyan-400">
+            <div className="text-xl font-display tabular-nums font-black text-cyan-400">
               {run.bandwidthSavedPct.toFixed(0)}%
             </div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
             <div className="text-[11px] text-slate-400">Security Score</div>
-            <div className="text-xl font-mono font-black text-amber-400">
+            <div className="text-xl font-display tabular-nums font-black text-amber-400">
               {run.securityScore}
             </div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
             <div className="text-[11px] text-slate-400">Mission Time</div>
-            <div className="text-xl font-mono font-black text-white">
+            <div className="text-xl font-display tabular-nums font-black text-white">
               {Math.floor(run.totalTimeSeconds / 60)}m {run.totalTimeSeconds % 60}s
             </div>
           </div>

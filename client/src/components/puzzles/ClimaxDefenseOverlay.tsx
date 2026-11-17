@@ -46,7 +46,7 @@ export const ClimaxDefenseOverlay: React.FC<Props> = ({
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[95vw] max-w-3xl bg-slate-950/90 border border-emerald-500/50 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+          <span className="text-[11px] font-display tabular-nums uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
             <Waves className="w-3.5 h-3.5 animate-pulse" />
             Chapter 7 &amp; Climax • “Man of Edge” (Two-Way Computing Stream)
           </span>
@@ -54,7 +54,7 @@ export const ClimaxDefenseOverlay: React.FC<Props> = ({
             Defend the Valley Dam — Capital Lines Dead!
           </h3>
         </div>
-        <div className="text-xs font-mono px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300">
+        <div className="text-xs font-display tabular-nums px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300">
           Cyber Threats Blocked: {Math.min(interceptedCount, requiredIntercepts)} / {requiredIntercepts}
         </div>
       </div>

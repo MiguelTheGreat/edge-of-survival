@@ -56,11 +56,11 @@ export const Chapter1MuralModal: React.FC<Props> = ({ onSolve, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+      <div className="w-full max-w-3xl bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-6 py-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">
+            <span className="text-xs font-display tabular-nums uppercase tracking-widest text-cyan-400">
               Chapter 1 • Introduction (“Discover the secrets.”)
             </span>
             <h2 className="text-xl font-bold text-white mt-0.5">The Severed Station Murals</h2>
@@ -72,7 +72,7 @@ export const Chapter1MuralModal: React.FC<Props> = ({ onSolve, onClose }) => {
 
         <div className="p-6 overflow-y-auto space-y-5">
           <p className="text-sm text-slate-300 leading-relaxed">
-            Capital uplink status: <span className="text-red-400 font-mono font-bold">DEAD (Latency: ∞ ms)</span>.
+            Capital uplink status: <span className="text-red-400 font-display tabular-nums font-bold">DEAD (Latency: ∞ ms)</span>.
             Inspect all three dust-covered stone murals to diagnose the failure, then unlock the definitions of{' '}
             <strong className="text-cyan-300">Edge Computing</strong> and <strong className="text-cyan-300">Edge AI</strong>.
           </p>

@@ -42,11 +42,11 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-red-500/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+      <div className="w-full max-w-3xl bg-slate-900 border border-red-500/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-6 py-4 bg-red-950/40 border-b border-red-900/60 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-red-400 flex items-center gap-1.5">
+            <span className="text-xs font-display tabular-nums uppercase tracking-widest text-red-400 flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 animate-pulse" />
               Chapters 6 &amp; 9 • Thermal Overload (“How do I make myself stronger?” / “Every power has its limits.”)
             </span>
@@ -59,7 +59,7 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
 
         <div className="p-6 overflow-y-auto space-y-5">
           <p className="text-sm text-slate-300">
-            Deploying a raw <code className="text-red-300 font-mono">FP32</code> neural network onto a microcontroller triggers{' '}
+            Deploying a raw <code className="text-red-300 font-display tabular-nums">FP32</code> neural network onto a microcontroller triggers{' '}
             <strong className="text-red-300">Power &amp; Heat</strong> and <strong className="text-red-300">Limited Resources</strong> alarms!
             Apply the <strong>Deep Compression</strong> pipeline (Han et al., 2015) while keeping accuracy above <strong>85%</strong>.
           </p>
@@ -68,25 +68,25 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className={`p-3 rounded-xl border ${memoryOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-red-950/40 border-red-500/50'}`}>
               <div className="text-[11px] text-slate-400">SRAM Footprint (Limit ≤256KB)</div>
-              <div className={`text-lg font-mono font-bold ${memoryOk ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`text-lg font-display tabular-nums font-bold ${memoryOk ? 'text-emerald-400' : 'text-red-400'}`}>
                 {memoryKB} KB
               </div>
             </div>
             <div className={`p-3 rounded-xl border ${thermalOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-red-950/40 border-red-500/50'}`}>
               <div className="text-[11px] text-slate-400">Chip Temp (Limit ≤55°C)</div>
-              <div className={`text-lg font-mono font-bold ${thermalOk ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`text-lg font-display tabular-nums font-bold ${thermalOk ? 'text-emerald-400' : 'text-red-400'}`}>
                 {thermalC}°C
               </div>
             </div>
             <div className={`p-3 rounded-xl border ${accuracyOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-amber-950/40 border-amber-500/50'}`}>
               <div className="text-[11px] text-slate-400">Accuracy (Min ≥85%)</div>
-              <div className="text-lg font-mono font-bold text-cyan-300">
+              <div className="text-lg font-display tabular-nums font-bold text-cyan-300">
                 {accuracyPct.toFixed(1)}%
               </div>
             </div>
             <div className="p-3 rounded-xl border bg-slate-950/60 border-slate-700">
               <div className="text-[11px] text-slate-400">Local Inference</div>
-              <div className="text-lg font-mono font-bold text-amber-300">
+              <div className="text-lg font-display tabular-nums font-bold text-amber-300">
                 {inferenceMs.toFixed(1)} ms
               </div>
             </div>

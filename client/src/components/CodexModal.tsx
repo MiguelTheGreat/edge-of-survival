@@ -28,7 +28,7 @@ export const CodexModal: React.FC<Props> = ({
   const activeUnlocked = isUnlocked(activeEntry.chapterNumber);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
       <div className="w-full max-w-4xl h-[85vh] bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -89,7 +89,7 @@ export const CodexModal: React.FC<Props> = ({
             ) : (
               <div className="space-y-4">
                 <div>
-                  <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">
+                  <span className="text-xs font-display tabular-nums text-cyan-400 uppercase tracking-widest">
                     Chapter {activeEntry.chapterNumber}
                   </span>
                   <h3 className="text-2xl font-black text-white mt-0.5">{activeEntry.title}</h3>
@@ -119,7 +119,7 @@ export const CodexModal: React.FC<Props> = ({
                 </div>
 
                 {activeEntry.citation && (
-                  <div className="text-[11px] text-slate-400 font-mono pt-2 border-t border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-display tabular-nums pt-2 border-t border-slate-800">
                     Reference: {activeEntry.citation}
                   </div>
                 )}

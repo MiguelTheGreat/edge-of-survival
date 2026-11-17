@@ -56,11 +56,11 @@ export const Chapter4ArchitectureModal: React.FC<Props> = ({ onSolve, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-amber-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+      <div className="w-full max-w-3xl bg-slate-900 border border-amber-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-6 py-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-amber-400">
+            <span className="text-xs font-display tabular-nums uppercase tracking-widest text-amber-400">
               Chapter 4 • Architecture (“Let’s test this power.”)
             </span>
             <h2 className="text-xl font-bold text-white mt-0.5">Three-Layer Spire &amp; 4-Step Plan</h2>
@@ -104,7 +104,7 @@ export const Chapter4ArchitectureModal: React.FC<Props> = ({ onSolve, onClose })
                 The Cloud tower is severed! Rotate the conduit to <strong className="text-emerald-400">0° (Local Edge Gateway)</strong>.
               </p>
               <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
-                <span className={`text-xs font-mono font-bold ${conduitAngle === 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-xs font-display tabular-nums font-bold ${conduitAngle === 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {conduitAngle === 0 ? '0° → EDGE GATEWAY' : `${conduitAngle}° → SEVERED CLOUD`}
                 </span>
                 <button

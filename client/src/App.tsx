@@ -220,6 +220,7 @@ export function App() {
         joystickVectorRef={joystickVectorRef}
         interactSignal={interactSignal}
         damRaised={damRaised}
+        hideLabels={Boolean(activePuzzle) || showCodex || showLeaderboard || showVictory}
       />
 
       <HUD
