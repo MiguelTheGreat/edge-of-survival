@@ -7,30 +7,70 @@ interface Props {
   onClose: () => void;
 }
 
+type Precision = 'FP32' | 'FP16' | 'INT8' | 'INT4';
+
 export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) => {
-  const [quantized, setQuantized] = useState(false); // FP32 -> INT8
-  const [pruned, setPruned] = useState(false); // Prune redundant weights
-  const [distilled, setDistilled] = useState(false); // Teacher -> Student
-  const [dspEnabled, setDspEnabled] = useState(false); // Fourier / Wavelet DSP
+  const [precision, setPrecision] = useState<Precision>('FP32');
+  const [pruningPct, setPruningPct] = useState<number>(0);
+  const [distilled, setDistilled] = useState(false);
+  const [dspEnabled, setDspEnabled] = useState(false);
 
   useEffect(() => {
     audioEngine.playWarningKlaxon();
   }, []);
 
-  // Compute simulated microcontroller metrics (Han et al., 2015 + Ch 9 Limitations)
-  const memoryKB =
-    920 - (quantized ? 540 : 0) - (pruned ? 190 : 0) - (distilled ? 110 : 0);
-  const thermalC =
-    108 - (quantized ? 34 : 0) - (pruned ? 16 : 0) - (distilled ? 12 : 0) - (dspEnabled ? 8 : 0);
-  const accuracyPct =
-    96 - (quantized ? 2.1 : 0) - (pruned ? 2.4 : 0) - (distilled ? 3.2 : 0) + (dspEnabled ? 1.5 : 0);
-  const inferenceMs =
-    42 - (quantized ? 19 : 0) - (pruned ? 9 : 0) - (distilled ? 6 : 0) - (dspEnabled ? 3.2 : 0);
+  const precisionMemFactor: Record<Precision, number> = {
+    FP32: 1.0,
+    FP16: 0.55,
+    INT8: 0.28,
+    INT4: 0.16,
+  };
+  const precisionHeatReduction: Record<Precision, number> = {
+    FP32: 0,
+    FP16: 18,
+    INT8: 36,
+    INT4: 44,
+  };
+  const precisionAccPenalty: Record<Precision, number> = {
+    FP32: 0,
+    FP16: 0.6,
+    INT8: 2.2,
+    INT4: 11.5,
+  };
+  const precisionMsReduction: Record<Precision, number> = {
+    FP32: 0,
+    FP16: 10,
+    INT8: 20,
+    INT4: 24,
+  };
+
+  const memoryKB = Math.round(
+    920 * precisionMemFactor[precision] * (1 - pruningPct * 0.0045) * (distilled ? 0.72 : 1)
+  );
+  const thermalC = Math.round(
+    108 - precisionHeatReduction[precision] - pruningPct * 0.22 - (distilled ? 10 : 0) - (dspEnabled ? 6 : 0)
+  );
+  const accuracyPct = Number(
+    (
+      96.5 -
+      precisionAccPenalty[precision] -
+      Math.max(0, pruningPct - 45) * 0.24 -
+      (distilled ? 1.5 : 0) +
+      (dspEnabled ? 2.1 : 0)
+    ).toFixed(1)
+  );
+  const inferenceMs = Number(
+    Math.max(
+      2.4,
+      42 - precisionMsReduction[precision] - pruningPct * 0.14 - (distilled ? 5.5 : 0) - (dspEnabled ? 2.5 : 0)
+    ).toFixed(1)
+  );
 
   const memoryOk = memoryKB <= 256;
   const thermalOk = thermalC <= 55;
   const accuracyOk = accuracyPct >= 85;
-  const allSafe = memoryOk && thermalOk && accuracyOk && quantized && pruned && distilled && dspEnabled;
+  const latencyOk = inferenceMs < 10;
+  const allSafe = memoryOk && thermalOk && accuracyOk && latencyOk && dspEnabled;
 
   const handleDeploy = () => {
     if (!allSafe) {
@@ -38,15 +78,15 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
       return;
     }
     audioEngine.playHologramChime();
-    onSolve(Number(inferenceMs.toFixed(1)));
+    onSolve(inferenceMs);
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
       <div className="w-full max-w-3xl bg-slate-900 border border-red-500/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-        <div className="px-6 py-4 bg-red-950/40 border-b border-red-900/60 flex items-center justify-between">
+        <div className="px-6 py-4 bg-red-950/40 border-b border-red-900/60 flex items-center justify-between shrink-0">
           <div>
-            <span className="text-xs font-display tabular-nums uppercase tracking-widest text-red-400 flex items-center gap-1.5">
+            <span className="text-xs font-display font-semibold uppercase tracking-widest text-red-400 flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 animate-pulse" />
               Chapters 6 &amp; 9 • Thermal Overload (“How do I make myself stronger?” / “Every power has its limits.”)
             </span>
@@ -57,56 +97,82 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5">
-          <p className="text-sm text-slate-300">
-            Deploying a raw <code className="text-red-300 font-display tabular-nums">FP32</code> neural network onto a microcontroller triggers{' '}
-            <strong className="text-red-300">Power &amp; Heat</strong> and <strong className="text-red-300">Limited Resources</strong> alarms!
-            Apply the <strong>Deep Compression</strong> pipeline (Han et al., 2015) while keeping accuracy above <strong>85%</strong>.
-          </p>
+        <div className="px-6 py-4 overflow-y-auto space-y-4">
+          <div className="text-xs bg-red-950/35 border border-red-500/35 rounded-xl px-3.5 py-2.5 text-red-200">
+            <strong>How to Solve:</strong> Tune Precision, Pruning %, Distillation, and DSP so <strong>SRAM ≤ 256KB</strong>, <strong>Temp ≤ 55°C</strong>, <strong>Accuracy ≥ 85%</strong>, and <strong>Inference &lt; 10ms</strong>. (Careful: INT4 or over-pruning crashes accuracy!)
+          </div>
 
           {/* Live MCU Telemetry */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className={`p-3 rounded-xl border ${memoryOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-red-950/40 border-red-500/50'}`}>
-              <div className="text-[11px] text-slate-400">SRAM Footprint (Limit ≤256KB)</div>
-              <div className={`text-lg font-display tabular-nums font-bold ${memoryOk ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className="text-[11px] text-slate-400">SRAM (≤256KB)</div>
+              <div className={`text-lg font-display font-bold tabular-nums ${memoryOk ? 'text-emerald-400' : 'text-red-400'}`}>
                 {memoryKB} KB
               </div>
             </div>
             <div className={`p-3 rounded-xl border ${thermalOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-red-950/40 border-red-500/50'}`}>
-              <div className="text-[11px] text-slate-400">Chip Temp (Limit ≤55°C)</div>
-              <div className={`text-lg font-display tabular-nums font-bold ${thermalOk ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className="text-[11px] text-slate-400">Chip Temp (≤55°C)</div>
+              <div className={`text-lg font-display font-bold tabular-nums ${thermalOk ? 'text-emerald-400' : 'text-red-400'}`}>
                 {thermalC}°C
               </div>
             </div>
             <div className={`p-3 rounded-xl border ${accuracyOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-amber-950/40 border-amber-500/50'}`}>
-              <div className="text-[11px] text-slate-400">Accuracy (Min ≥85%)</div>
-              <div className="text-lg font-display tabular-nums font-bold text-cyan-300">
+              <div className="text-[11px] text-slate-400">Accuracy (≥85%)</div>
+              <div className={`text-lg font-display font-bold tabular-nums ${accuracyOk ? 'text-cyan-300' : 'text-amber-400'}`}>
                 {accuracyPct.toFixed(1)}%
               </div>
             </div>
-            <div className="p-3 rounded-xl border bg-slate-950/60 border-slate-700">
-              <div className="text-[11px] text-slate-400">Local Inference</div>
-              <div className="text-lg font-display tabular-nums font-bold text-amber-300">
+            <div className={`p-3 rounded-xl border ${latencyOk ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-slate-950/60 border-slate-700'}`}>
+              <div className="text-[11px] text-slate-400">Inference (&lt;10ms)</div>
+              <div className={`text-lg font-display font-bold tabular-nums ${latencyOk ? 'text-emerald-400' : 'text-amber-300'}`}>
                 {inferenceMs.toFixed(1)} ms
               </div>
             </div>
           </div>
 
-          {/* Compression Toggles */}
+          {/* Quantization Precision Selector */}
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+            <div className="text-xs font-bold text-white">1. Quantization Bit-Width (Han et al., 2015)</div>
+            <div className="grid grid-cols-4 gap-2">
+              {(['FP32', 'FP16', 'INT8', 'INT4'] as Precision[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => {
+                    audioEngine.playInteract();
+                    setPrecision(p);
+                  }}
+                  className={`py-2 rounded-lg text-xs font-display font-bold border cursor-pointer transition ${
+                    precision === p
+                      ? 'bg-cyan-500 text-slate-950 border-cyan-300'
+                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500/50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Pruning Slider */}
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+            <div className="flex justify-between text-xs font-semibold mb-1.5">
+              <span className="text-white">2. Neural Pruning Sparsity</span>
+              <span className="font-display tabular-nums text-cyan-300">{pruningPct}% Redundant Weights Removed</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={90}
+              step={5}
+              value={pruningPct}
+              onChange={(e) => setPruningPct(Number(e.target.value))}
+              className="w-full accent-cyan-400 cursor-pointer"
+            />
+          </div>
+
+          {/* Distillation & DSP Toggles */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              {
-                title: '1. INT8 Quantization',
-                desc: 'Convert FP32 weights & activations to 8-bit integers (INT8).',
-                active: quantized,
-                toggle: () => setQuantized((v) => !v),
-              },
-              {
-                title: '2. Neural Pruning',
-                desc: 'Strip redundant neural connections that do not contribute to inference.',
-                active: pruned,
-                toggle: () => setPruned((v) => !v),
-              },
               {
                 title: '3. Model Distillation',
                 desc: 'Transfer Teacher intelligence into a compact Student model.',
@@ -115,7 +181,7 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
               },
               {
                 title: '4. DSP Transforms (Fourier / Wavelet)',
-                desc: 'Pre-filter acoustic & water-pressure noise before TinyML inference.',
+                desc: 'Pre-filter acoustic & water-pressure noise to boost accuracy.',
                 active: dspEnabled,
                 toggle: () => setDspEnabled((v) => !v),
               },
@@ -126,7 +192,7 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
                   audioEngine.playInteract();
                   tool.toggle();
                 }}
-                className={`p-4 rounded-xl border text-left transition cursor-pointer ${
+                className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                   tool.active
                     ? 'bg-emerald-950/40 border-emerald-400/70'
                     : 'bg-slate-800/70 border-slate-700 hover:border-cyan-400/50'
@@ -144,7 +210,7 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-400">
             Platforms: TensorFlow Lite • Edge Impulse • MATLAB / Simulink
           </span>
@@ -157,7 +223,7 @@ export const Chapter6CompressionModal: React.FC<Props> = ({ onSolve, onClose }) 
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
             }`}
           >
-            {allSafe ? 'Deploy Compressed TinyML Model' : 'Stabilize Heat & Memory First'}
+            {allSafe ? 'Deploy Compressed TinyML Model' : 'Balance Constraints First'}
           </button>
         </div>
       </div>

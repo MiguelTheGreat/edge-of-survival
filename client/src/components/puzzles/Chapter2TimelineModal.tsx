@@ -27,12 +27,12 @@ const CORRECT_ERAS: EraItem[] = [
 
 export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => {
   const initialShuffled = useMemo(() => {
-    const arr = [...CORRECT_ERAS];
-    // Deterministic readable scramble
-    return [arr[1], arr[0], arr[3], arr[2], arr[5], arr[4], arr[7], arr[6]];
+    const a = CORRECT_ERAS;
+    return [a[3], a[0], a[5], a[1], a[7], a[2], a[6], a[4]];
   }, []);
 
   const [items, setItems] = useState<EraItem[]>(initialShuffled);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const move = (index: number, dir: -1 | 1) => {
@@ -42,19 +42,37 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
     const next = [...items];
     [next[index], next[target]] = [next[target], next[index]];
     setItems(next);
+    setSelectedIdx(null);
     setError('');
+  };
+
+  const handleRowClick = (idx: number) => {
+    audioEngine.playInteract();
+    if (selectedIdx === null) {
+      setSelectedIdx(idx);
+    } else if (selectedIdx === idx) {
+      setSelectedIdx(null);
+    } else {
+      const next = [...items];
+      [next[selectedIdx], next[idx]] = [next[idx], next[selectedIdx]];
+      setItems(next);
+      setSelectedIdx(null);
+      setError('');
+    }
   };
 
   const handleVerify = () => {
     const isCorrect = items.every((item, idx) => item.order === idx + 1);
     if (!isCorrect) {
       audioEngine.playWarningKlaxon();
-      setError('Chronological mismatch! Sequence all 8 eras from 1960s Mainframes to 2020s+ Edge AI & TinyML.');
+      setError('Chronological mismatch! Sequence all 8 eras from 1960s Mainframes (1) to 2020s+ Edge AI & TinyML (8).');
       return;
     }
     audioEngine.playHologramChime();
     onSolve();
   };
+
+  const lockedCount = items.filter((item, idx) => item.order === idx + 1).length;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
@@ -72,21 +90,29 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
         </div>
 
         <div className="px-6 py-4 overflow-y-auto space-y-3">
-          <p className="text-sm text-slate-300">
-            A towering 3D wireframe hologram erupts from the altar. Arrange the 8 computing eras in chronological order
-            from earliest to modern <strong className="text-cyan-300">Edge AI &amp; TinyML</strong>.
-          </p>
+          <div className="text-xs bg-cyan-950/40 border border-cyan-500/30 rounded-xl px-3.5 py-2 text-cyan-200 flex items-center justify-between gap-2">
+            <span>
+              <strong>How to Solve:</strong> Click any two eras to swap them (or use ↑↓) from 1960s to 2020s+. Green = correct slot!
+            </span>
+            <span className="font-display font-bold tabular-nums text-emerald-300 shrink-0">
+              {lockedCount}/8 Aligned
+            </span>
+          </div>
 
           <div className="space-y-1.5 pb-1">
             {items.map((item, idx) => {
               const inRightSpot = item.order === idx + 1;
+              const isSelected = selectedIdx === idx;
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center justify-between px-3.5 py-2 rounded-xl border transition ${
-                    inRightSpot
-                      ? 'bg-emerald-950/35 border-emerald-500/40'
-                      : 'bg-slate-800/70 border-slate-700'
+                  onClick={() => handleRowClick(idx)}
+                  className={`flex items-center justify-between px-3.5 py-2 rounded-xl border transition cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-950/50 border-amber-400 ring-1 ring-amber-400/50'
+                      : inRightSpot
+                      ? 'bg-emerald-950/35 border-emerald-500/45'
+                      : 'bg-slate-800/70 border-slate-700 hover:border-cyan-500/50'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -98,7 +124,7 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
                       <span className="text-xs text-slate-200">{item.label}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <div className="flex items-center gap-1 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => move(idx, -1)}
                       disabled={idx === 0}
@@ -129,12 +155,9 @@ export const Chapter2TimelineModal: React.FC<Props> = ({ onSolve, onClose }) => 
         </div>
 
         <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between shrink-0">
-          <button
-            onClick={() => setItems([...CORRECT_ERAS])}
-            className="text-xs text-slate-400 hover:text-cyan-300 underline cursor-pointer"
-          >
-            Auto-Align Archive
-          </button>
+          <span className="text-xs text-slate-400">
+            {selectedIdx !== null ? `Swapping slot #${selectedIdx + 1} — click another row` : 'Tip: Click two rows to swap'}
+          </span>
           <button
             onClick={handleVerify}
             className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm flex items-center gap-2 cursor-pointer"

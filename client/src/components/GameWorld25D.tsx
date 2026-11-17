@@ -36,7 +36,7 @@ function getPlatformHeight(x: number): number {
 
 function clampPosition(x: number, z: number): [number, number] {
   const cx = Math.max(-17.5, Math.min(33.5, x));
-  const cz = Math.max(-7.5, Math.min(7.5, z));
+  const cz = Math.max(-7.2, Math.min(7.2, z));
   return [cx, cz];
 }
 
@@ -64,11 +64,16 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
   interactSignal,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
   const ring1Ref = useRef<THREE.Mesh>(null);
   const ring2Ref = useRef<THREE.Mesh>(null);
   const keysRef = useRef<Record<string, boolean>>({});
   const nearStationRef = useRef<StationConfig | null>(null);
   const lastInteractRef = useRef<number>(interactSignal);
+  const walkPhaseRef = useRef<number>(0);
   const { camera } = useThree();
 
   const isStationUnlocked = (station: StationConfig): boolean => {
@@ -110,6 +115,7 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
     const pos = playerPosRef.current;
+    let isMoving = false;
 
     if (!activePuzzle) {
       let dx = joystickVectorRef.current.x;
@@ -123,11 +129,11 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
 
       const len = Math.hypot(dx, dz);
       if (len > 0.01) {
-        const speed = 7.2;
+        isMoving = true;
+        const speed = 7.4;
         const nx = pos.x + (dx / Math.max(1, len)) * speed * dt;
         const nz = pos.z + (dz / Math.max(1, len)) * speed * dt;
 
-        // Prevent crossing laser chasm at x = 3..4.5 unless Ch 3 is solved
         const bridgeActive = solvedStations.includes('ch3-calibration');
         let allowedX = nx;
         if (!bridgeActive && pos.x <= 3.1 && nx > 3.1) {
@@ -143,11 +149,23 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
           groupRef.current.rotation.y = THREE.MathUtils.lerp(
             groupRef.current.rotation.y,
             targetRot,
-            10 * dt
+            12 * dt
           );
         }
       }
     }
+
+    // Articulated walking stride
+    if (isMoving) {
+      walkPhaseRef.current += dt * 12;
+    } else {
+      walkPhaseRef.current = THREE.MathUtils.lerp(walkPhaseRef.current, 0, 8 * dt);
+    }
+    const swing = isMoving ? Math.sin(walkPhaseRef.current) * 0.48 : 0;
+    if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+    if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+    if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.7;
+    if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.7;
 
     const targetY = getPlatformHeight(pos.x);
     pos.y = THREE.MathUtils.lerp(pos.y, targetY, 12 * dt);
@@ -157,9 +175,9 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
     }
 
     // 45-degree angled isometric-style follow camera
-    const camTarget = new THREE.Vector3(pos.x + 0.5, pos.y + 10.5, pos.z + 11.5);
+    const camTarget = new THREE.Vector3(pos.x + 0.6, pos.y + 10.8, pos.z + 11.8);
     camera.position.lerp(camTarget, 5.5 * dt);
-    camera.lookAt(pos.x, pos.y + 0.8, pos.z);
+    camera.lookAt(pos.x, pos.y + 0.9, pos.z);
 
     // Orbiting wrist rings (Ch 3+)
     const t = state.clock.elapsedTime;
@@ -173,7 +191,7 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
 
     // Nearest station check
     let closest: StationConfig | null = null;
-    let closestDist = 3.1;
+    let closestDist = 3.2;
     for (const st of STATIONS) {
       const d = Math.hypot(pos.x - st.position[0], pos.z - st.position[2]);
       if (d < closestDist) {
@@ -187,95 +205,159 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
     }
   });
 
+  const auraColor = hasPowerAura ? '#10b981' : '#2dd4bf';
+
   return (
     <group ref={groupRef} position={[-15.5, 0, 4]}>
       {/* Wrist-beacon dynamic point light */}
       <pointLight
-        position={[0.3, 1.5, 0.3]}
-        color={hasPowerAura ? '#10b981' : '#06b6d4'}
-        intensity={hasPowerAura ? 9 : 6}
-        distance={11}
+        position={[0.3, 1.6, 0.35]}
+        color={auraColor}
+        intensity={hasPowerAura ? 10 : 7}
+        distance={13}
         castShadow
       />
 
-      {/* Stylized 2.5D John Character */}
-      {/* Boots / Legs */}
-      <mesh position={[-0.18, 0.35, 0]} castShadow>
-        <boxGeometry args={[0.22, 0.7, 0.24]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.6} />
+      {/* Articulated Legs */}
+      <mesh ref={leftLegRef} position={[-0.17, 0.36, 0]} castShadow>
+        <capsuleGeometry args={[0.1, 0.45, 6, 12]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.55} metalness={0.2} />
       </mesh>
-      <mesh position={[0.18, 0.35, 0]} castShadow>
-        <boxGeometry args={[0.22, 0.7, 0.24]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.6} />
+      <mesh ref={rightLegRef} position={[0.17, 0.36, 0]} castShadow>
+        <capsuleGeometry args={[0.1, 0.45, 6, 12]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.55} metalness={0.2} />
       </mesh>
 
-      {/* Torso (Engineer Jacket) */}
+      {/* Torso (Armored Engineer Jacket) */}
       <mesh position={[0, 1.05, 0]} castShadow>
-        <boxGeometry args={[0.62, 0.78, 0.36]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.45} metalness={0.2} />
+        <cylinderGeometry args={[0.29, 0.25, 0.76, 8]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.35} />
       </mesh>
+      {/* Shoulder Pauldrons */}
+      <mesh position={[-0.36, 1.32, 0]} castShadow>
+        <dodecahedronGeometry args={[0.14, 0]} />
+        <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.35} />
+      </mesh>
+      <mesh position={[0.36, 1.32, 0]} castShadow>
+        <dodecahedronGeometry args={[0.14, 0]} />
+        <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.35} />
+      </mesh>
+
+      {/* Edge Backpack Power-Cell */}
+      <mesh position={[0, 1.1, -0.26]} castShadow>
+        <boxGeometry args={[0.38, 0.48, 0.16]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 1.12, -0.35]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.34, 12]} />
+        <meshStandardMaterial color={auraColor} emissive={auraColor} emissiveIntensity={2.2} />
+      </mesh>
+
       {/* Glowing Chest Core */}
-      <mesh position={[0, 1.08, 0.19]}>
-        <boxGeometry args={[0.22, 0.22, 0.04]} />
-        <meshStandardMaterial
-          color={hasPowerAura ? '#10b981' : '#06b6d4'}
-          emissive={hasPowerAura ? '#10b981' : '#06b6d4'}
-          emissiveIntensity={2.2}
-        />
+      <mesh position={[0, 1.1, 0.26]}>
+        <octahedronGeometry args={[0.11, 0]} />
+        <meshStandardMaterial color={auraColor} emissive={auraColor} emissiveIntensity={2.4} />
       </mesh>
 
-      {/* Head */}
-      <mesh position={[0, 1.68, 0]} castShadow>
-        <boxGeometry args={[0.44, 0.44, 0.44]} />
-        <meshStandardMaterial color="#f1c27d" roughness={0.6} />
+      {/* Head & Visor */}
+      <mesh position={[0, 1.66, 0]} castShadow>
+        <sphereGeometry args={[0.24, 16, 16]} />
+        <meshStandardMaterial color="#f1c27d" roughness={0.55} />
       </mesh>
-      {/* Visor */}
-      <mesh position={[0, 1.72, 0.23]}>
-        <boxGeometry args={[0.36, 0.12, 0.04]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#06b6d4" emissiveIntensity={1.8} />
+      <mesh position={[0, 1.72, 0.02]} castShadow>
+        <sphereGeometry args={[0.255, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.4} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 1.68, 0.21]}>
+        <boxGeometry args={[0.32, 0.09, 0.06]} />
+        <meshStandardMaterial color="#2dd4bf" emissive="#06b6d4" emissiveIntensity={2.0} />
       </mesh>
 
-      {/* Right Arm + Holographic Wrist Beacon */}
-      <mesh position={[0.42, 1.05, 0.06]} castShadow>
-        <boxGeometry args={[0.18, 0.65, 0.2]} />
-        <meshStandardMaterial color="#334155" />
+      {/* Left Arm */}
+      <mesh ref={leftArmRef} position={[-0.4, 1.02, 0]} castShadow>
+        <capsuleGeometry args={[0.08, 0.46, 6, 10]} />
+        <meshStandardMaterial color="#334155" metalness={0.3} />
       </mesh>
-      <mesh position={[0.42, 0.82, 0.12]}>
-        <torusGeometry args={[0.13, 0.03, 8, 20]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#06b6d4" emissiveIntensity={2.5} />
-      </mesh>
+
+      {/* Right Arm + Holographic Wrist Gauntlet */}
+      <group ref={rightArmRef} position={[0.4, 1.02, 0.05]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.08, 0.46, 6, 10]} />
+          <meshStandardMaterial color="#334155" metalness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.22, 0.06]}>
+          <torusGeometry args={[0.13, 0.03, 10, 24]} />
+          <meshStandardMaterial color="#2dd4bf" emissive="#06b6d4" emissiveIntensity={2.6} />
+        </mesh>
+      </group>
 
       {/* Chapter 3+ Orbiting Holographic Arm Rings */}
       {hasArmRings && (
-        <group position={[0.45, 0.9, 0.15]}>
+        <group position={[0.45, 0.95, 0.15]}>
           <mesh ref={ring1Ref}>
-            <torusGeometry args={[0.32, 0.02, 8, 32]} />
+            <torusGeometry args={[0.34, 0.022, 10, 36]} />
             <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={2.5} />
           </mesh>
           <mesh ref={ring2Ref}>
-            <torusGeometry args={[0.42, 0.015, 8, 32]} />
+            <torusGeometry args={[0.45, 0.016, 10, 36]} />
             <meshStandardMaterial color="#10b981" emissive="#10b981" emissiveIntensity={2} />
           </mesh>
         </group>
       )}
 
-      {/* Left Arm */}
-      <mesh position={[-0.42, 1.05, 0]} castShadow>
-        <boxGeometry args={[0.18, 0.65, 0.2]} />
-        <meshStandardMaterial color="#334155" />
-      </mesh>
-
-      {/* Ground shadow ring */}
-      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.42, 0.55, 24]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.45} />
+      {/* Ground beacon ring */}
+      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.42, 0.56, 32]} />
+        <meshBasicMaterial color={auraColor} transparent opacity={0.5} />
       </mesh>
     </group>
   );
 };
 
+const CavernMotes: React.FC = () => {
+  const count = 140;
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const motes = useMemo(
+    () =>
+      Array.from({ length: count }, () => ({
+        x: -18 + Math.random() * 52,
+        y: 0.6 + Math.random() * 5.5,
+        z: (Math.random() - 0.5) * 14,
+        speed: 0.25 + Math.random() * 0.45,
+        phase: Math.random() * Math.PI * 2,
+      })),
+    []
+  );
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < count; i++) {
+      const m = motes[i];
+      dummy.position.set(
+        m.x + Math.sin(t * m.speed + m.phase) * 0.35,
+        m.y + Math.cos(t * m.speed + m.phase) * 0.25,
+        m.z
+      );
+      const s = 0.7 + Math.sin(t * 2 + m.phase) * 0.3;
+      dummy.scale.setScalar(s);
+      dummy.updateMatrix();
+      meshRef.current.setMatrixAt(i, dummy.matrix);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+      <octahedronGeometry args={[0.045, 0]} />
+      <meshBasicMaterial color="#2dd4bf" transparent opacity={0.55} />
+    </instancedMesh>
+  );
+};
+
 const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
-  const count = 260;
+  const count = 300;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const drops = useMemo(
@@ -284,7 +366,7 @@ const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
         x: 24 + Math.random() * 12,
         y: Math.random() * 10 + 1,
         z: (Math.random() - 0.5) * 16,
-        speed: 11 + Math.random() * 6,
+        speed: 12 + Math.random() * 6,
       })),
     []
   );
@@ -310,11 +392,31 @@ const StormRainParticles: React.FC<{ active: boolean }> = ({ active }) => {
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <boxGeometry args={[0.03, 0.45, 0.03]} />
-      <meshBasicMaterial color="#38bdf8" transparent opacity={0.55} />
+      <boxGeometry args={[0.025, 0.5, 0.025]} />
+      <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} />
     </instancedMesh>
   );
 };
+
+const StonePillar: React.FC<{ position: [number, number, number]; glowColor?: string }> = ({
+  position,
+  glowColor = '#0ea5e9',
+}) => (
+  <group position={position}>
+    <mesh position={[0, 2.2, 0]} castShadow receiveShadow>
+      <cylinderGeometry args={[0.38, 0.5, 4.4, 8]} />
+      <meshStandardMaterial color="#162032" roughness={0.85} metalness={0.2} />
+    </mesh>
+    <mesh position={[0, 4.45, 0]} castShadow>
+      <cylinderGeometry args={[0.62, 0.42, 0.35, 8]} />
+      <meshStandardMaterial color="#1e293b" roughness={0.75} />
+    </mesh>
+    <mesh position={[0, 2.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[0.42, 0.03, 8, 24]} />
+      <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={1.5} />
+    </mesh>
+  </group>
+);
 
 const StationPedestal: React.FC<{
   station: StationConfig;
@@ -326,15 +428,20 @@ const StationPedestal: React.FC<{
 }> = ({ station, solved, unlocked, isNear, hideLabels, onClick }) => {
   const crystalRef = useRef<THREE.Mesh>(null);
   const holoRef = useRef<THREE.Mesh>(null);
+  const knotRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     if (crystalRef.current) {
       crystalRef.current.rotation.y = t * 1.1;
-      crystalRef.current.position.y = 1.65 + Math.sin(t * 2.2) * 0.12;
+      crystalRef.current.position.y = 1.7 + Math.sin(t * 2.2) * 0.12;
     }
     if (holoRef.current) {
-      holoRef.current.rotation.y = -t * 0.6;
+      holoRef.current.rotation.y = -t * 0.5;
+    }
+    if (knotRef.current) {
+      knotRef.current.rotation.x = t * 0.7;
+      knotRef.current.rotation.y = t * 0.9;
     }
   });
 
@@ -342,19 +449,22 @@ const StationPedestal: React.FC<{
 
   return (
     <group position={station.position}>
-      {/* Dynamic chamber point light */}
       {(unlocked || solved) && (
         <pointLight
-          position={[0, 2.8, 0]}
+          position={[0, 3.0, 0]}
           color={color}
-          intensity={solved ? 7 : 5}
-          distance={9}
+          intensity={solved ? 8 : 6}
+          distance={10}
         />
       )}
 
-      {/* Basalt Pedestal Base */}
+      {/* Multi-tiered Octagonal Basalt Pedestal */}
+      <mesh position={[0, 0.2, 0]} receiveShadow castShadow>
+        <cylinderGeometry args={[1.15, 1.3, 0.4, 8]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.85} metalness={0.25} />
+      </mesh>
       <mesh
-        position={[0, 0.55, 0]}
+        position={[0, 0.72, 0]}
         castShadow
         receiveShadow
         onClick={(e) => {
@@ -362,52 +472,65 @@ const StationPedestal: React.FC<{
           if (unlocked) onClick();
         }}
       >
-        <cylinderGeometry args={[0.75, 0.95, 1.1, 6]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.7} metalness={0.3} />
+        <cylinderGeometry args={[0.72, 0.92, 0.75, 8]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.65} metalness={0.35} />
       </mesh>
 
-      {/* Glowing Rim */}
+      {/* Glowing Conduit Ring */}
       <mesh position={[0, 1.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.55, 0.72, 24]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={unlocked ? 2 : 0.2} />
+        <ringGeometry args={[0.52, 0.7, 32]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={unlocked ? 2.2 : 0.2} />
       </mesh>
 
-      {/* Floating Holographic Crystal */}
+      {/* Floating High-Poly Crystal */}
       <mesh
         ref={crystalRef}
-        position={[0, 1.65, 0]}
+        position={[0, 1.7, 0]}
         onClick={(e) => {
           e.stopPropagation();
           if (unlocked) onClick();
         }}
       >
-        <octahedronGeometry args={[0.38, 0]} />
+        <dodecahedronGeometry args={[0.38, 0]} />
         <meshStandardMaterial
           color={color}
           emissive={color}
           emissiveIntensity={unlocked ? 2.4 : 0.3}
           wireframe={!solved}
+          metalness={0.4}
+          roughness={0.2}
         />
       </mesh>
 
-      {/* Towering Wireframe Hologram for Ch 2 Altar */}
+      {/* Towering Multi-Layer Wireframe Hologram for Ch 2 Altar */}
       {station.id === 'ch2-altar' && unlocked && (
-        <mesh ref={holoRef} position={[0, 2.8, 0]}>
-          <icosahedronGeometry args={[1.15, 1]} />
-          <meshStandardMaterial
-            color={solved ? '#10b981' : '#22d3ee'}
-            emissive={solved ? '#10b981' : '#06b6d4'}
-            emissiveIntensity={1.6}
-            wireframe
-            transparent
-            opacity={0.45}
-          />
-        </mesh>
+        <group position={[0, 2.9, 0]}>
+          <mesh ref={holoRef}>
+            <icosahedronGeometry args={[1.25, 1]} />
+            <meshStandardMaterial
+              color={solved ? '#10b981' : '#2dd4bf'}
+              emissive={solved ? '#10b981' : '#06b6d4'}
+              emissiveIntensity={1.6}
+              wireframe
+              transparent
+              opacity={0.45}
+            />
+          </mesh>
+          <mesh ref={knotRef}>
+            <torusKnotGeometry args={[0.48, 0.08, 64, 12]} />
+            <meshStandardMaterial
+              color="#fbbf24"
+              emissive="#f59e0b"
+              emissiveIntensity={1.8}
+              wireframe
+            />
+          </mesh>
+        </group>
       )}
 
       {/* 2.5D Billboarded Floating Label */}
       {!hideLabels && (
-        <Html position={[0, 2.55, 0]} center distanceFactor={14} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 2.6, 0]} center distanceFactor={14} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div
             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap border backdrop-blur-md transition-all ${
               solved
@@ -459,131 +582,179 @@ const SceneContent: React.FC<GameWorldProps> = ({
 
   return (
     <>
-      <color attach="background" args={['#020617']} />
-      <fog attach="fog" args={['#020617', 16, 42]} />
+      <color attach="background" args={['#060a14']} />
+      <fog attach="fog" args={['#060a14', 18, 46]} />
 
-      <ambientLight intensity={0.28} color="#94a3b8" />
+      <ambientLight intensity={0.32} color="#94a3b8" />
       <directionalLight
-        position={[12, 22, 10]}
-        intensity={0.75}
-        color="#cbd5e1"
+        position={[14, 24, 12]}
+        intensity={0.85}
+        color="#e2e8f0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
 
-      {/* ACT I: Subterranean Basalt Platforms */}
-      {/* Platform 1: Ch 1 */}
-      <mesh position={[-14, -0.5, 0]} receiveShadow>
-        <boxGeometry args={[8, 1, 15]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.9} />
-      </mesh>
-      {/* Platform 2: Ch 2 */}
-      <mesh position={[-7, -0.2, 0]} receiveShadow>
-        <boxGeometry args={[6, 1, 15]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.85} />
-      </mesh>
-      {/* Platform 3: Ch 3 */}
-      <mesh position={[-0.5, 0, 0]} receiveShadow>
-        <boxGeometry args={[7, 1, 15]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.85} />
-      </mesh>
+      {/* Atmospheric Cavern Dust Motes */}
+      <CavernMotes />
 
-      {/* Carved Stone Murals in Ch 1 */}
+      {/* ACT I: Subterranean Basalt Platforms with Glowing Chamfer Trim */}
+      <group>
+        <mesh position={[-14, -0.5, 0]} receiveShadow>
+          <boxGeometry args={[8, 1, 15]} />
+          <meshStandardMaterial color="#0b1120" roughness={0.9} metalness={0.15} />
+        </mesh>
+        <mesh position={[-14, 0.02, 7.45]}>
+          <boxGeometry args={[8, 0.06, 0.12]} />
+          <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={1.4} />
+        </mesh>
+
+        <mesh position={[-7, -0.2, 0]} receiveShadow>
+          <boxGeometry args={[6, 1, 15]} />
+          <meshStandardMaterial color="#111a2e" roughness={0.85} metalness={0.2} />
+        </mesh>
+        <mesh position={[-0.5, 0, 0]} receiveShadow>
+          <boxGeometry args={[7, 1, 15]} />
+          <meshStandardMaterial color="#162036" roughness={0.85} metalness={0.2} />
+        </mesh>
+      </group>
+
+      {/* Carved Stone Murals in Ch 1 with Glowing Rune Frames */}
       {[-3.5, 0, 3.5].map((zPos, i) => (
         <group key={i} position={[-17.4, 1.6, zPos]}>
           <mesh castShadow>
-            <boxGeometry args={[0.4, 2.4, 2.2]} />
-            <meshStandardMaterial color="#334155" roughness={0.8} />
+            <boxGeometry args={[0.5, 2.7, 2.3]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.75} metalness={0.25} />
           </mesh>
-          <mesh position={[0.22, 0, 0]}>
-            <planeGeometry args={[1.6, 1.6]} />
+          <mesh position={[0.27, 0, 0]}>
+            <boxGeometry args={[0.04, 1.9, 1.7]} />
             <meshStandardMaterial
-              color={solvedStations.includes('ch1-mural') ? '#10b981' : '#06b6d4'}
+              color={solvedStations.includes('ch1-mural') ? '#10b981' : '#2dd4bf'}
               emissive={solvedStations.includes('ch1-mural') ? '#10b981' : '#06b6d4'}
-              emissiveIntensity={0.6}
+              emissiveIntensity={0.85}
               wireframe
             />
           </mesh>
         </group>
       ))}
 
+      {/* Subterranean Pillars with Glowing Rune Rings */}
+      <StonePillar position={[-10.5, 0, -6.5]} glowColor="#0ea5e9" />
+      <StonePillar position={[-10.5, 0, 6.5]} glowColor="#0ea5e9" />
+      <StonePillar position={[2.2, 0.4, -6.5]} glowColor={bridgeActive ? '#10b981' : '#f59e0b'} />
+      <StonePillar position={[2.2, 0.4, 6.5]} glowColor={bridgeActive ? '#10b981' : '#f59e0b'} />
+      <StonePillar position={[15.5, 0.8, -6.5]} glowColor="#f59e0b" />
+      <StonePillar position={[15.5, 0.8, 6.5]} glowColor="#f59e0b" />
+
       {/* Extruded Circuit Conduits across Act I */}
-      <mesh position={[-7, 0.32, 0]}>
-        <boxGeometry args={[20, 0.05, 0.35]} />
+      <mesh position={[-7, 0.33, 0]}>
+        <boxGeometry args={[20, 0.06, 0.42]} />
         <meshStandardMaterial
-          color={bridgeActive ? '#10b981' : '#06b6d4'}
+          color={bridgeActive ? '#10b981' : '#2dd4bf'}
           emissive={bridgeActive ? '#10b981' : '#06b6d4'}
-          emissiveIntensity={1.6}
+          emissiveIntensity={1.8}
         />
       </mesh>
 
-      {/* 3D Laser Bridge between Act I (x=3) and Act II (x=5) */}
-      <mesh position={[4, 0.65, 0]}>
-        <boxGeometry args={[2.2, 0.12, 3.2]} />
-        <meshStandardMaterial
-          color={bridgeActive ? '#06b6d4' : '#ef4444'}
-          emissive={bridgeActive ? '#06b6d4' : '#ef4444'}
-          emissiveIntensity={bridgeActive ? 2.2 : 0.7}
-          transparent
-          opacity={bridgeActive ? 0.85 : 0.2}
-        />
-      </mesh>
+      {/* Segmented 3D Laser Bridge between Act I (x=3) and Act II (x=5) */}
+      {[-0.9, 0, 0.9].map((zOff, idx) => (
+        <mesh key={idx} position={[4, 0.68, zOff]}>
+          <boxGeometry args={[2.3, 0.1, 0.65]} />
+          <meshStandardMaterial
+            color={bridgeActive ? '#2dd4bf' : '#ef4444'}
+            emissive={bridgeActive ? '#06b6d4' : '#ef4444'}
+            emissiveIntensity={bridgeActive ? 2.4 : 0.7}
+            transparent
+            opacity={bridgeActive ? 0.9 : 0.22}
+          />
+        </mesh>
+      ))}
 
       {/* ACT II: Architecture, Hardware & Compression Chamber */}
       <mesh position={[10.5, 0.3, 0]} receiveShadow>
         <boxGeometry args={[11, 1, 15]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.85} />
+        <meshStandardMaterial color="#0f172a" roughness={0.85} metalness={0.2} />
       </mesh>
       <mesh position={[20, 0.6, 0]} receiveShadow>
         <boxGeometry args={[8, 1, 15]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.85} />
+        <meshStandardMaterial color="#172136" roughness={0.85} metalness={0.2} />
       </mesh>
 
-      {/* Severed Cloud Tower Visual (Red Broken Spire) */}
-      <group position={[7, 0.8, -6.5]}>
-        <mesh position={[0, 1.8, 0]} castShadow>
-          <cylinderGeometry args={[0.4, 0.7, 3.6, 8]} />
+      {/* Three-Layer Architecture Spire Landmark (Ch 4) */}
+      <group position={[7, 0.8, -6.2]}>
+        {/* End Device Tier */}
+        <mesh position={[0, 0.5, 0]} castShadow>
+          <cylinderGeometry args={[0.9, 1.0, 0.6, 8]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.4} />
+        </mesh>
+        {/* Edge Server Tier */}
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <cylinderGeometry args={[0.65, 0.75, 0.8, 8]} />
+          <meshStandardMaterial color="#0f172a" emissive="#f59e0b" emissiveIntensity={0.35} />
+        </mesh>
+        {/* Severed Cloud Spire (Top) */}
+        <mesh position={[0, 3.0, 0]} castShadow>
+          <cylinderGeometry args={[0.35, 0.45, 1.1, 8]} />
           <meshStandardMaterial color="#334155" />
         </mesh>
-        <mesh position={[0, 3.9, 0]}>
-          <octahedronGeometry args={[0.5, 0]} />
-          <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.8} wireframe />
+        <mesh position={[0, 4.0, 0]}>
+          <octahedronGeometry args={[0.45, 0]} />
+          <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.0} wireframe />
         </mesh>
       </group>
 
+      {/* 3D Hardware Gallery Mini-Chips around Ch 5 */}
+      {[-2.2, 0, 2.2].map((xOff, i) => (
+        <mesh key={i} position={[13 + xOff, 1.05, 5.2]} castShadow>
+          <boxGeometry args={[0.7, 0.45, 0.7]} />
+          <meshStandardMaterial
+            color="#1e293b"
+            emissive="#fbbf24"
+            emissiveIntensity={solvedStations.includes('ch5-hardware') ? 0.9 : 0.25}
+            metalness={0.6}
+          />
+        </mesh>
+      ))}
+
       {/* Thermal Crisis Warning Light in Ch 6 */}
       {!ch6Solved && solvedStations.includes('ch5-hardware') && (
-        <pointLight position={[20, 4, -1]} color="#ef4444" intensity={10} distance={10} />
+        <pointLight position={[20, 4.2, -1]} color="#ef4444" intensity={12} distance={11} />
       )}
 
-      {/* ACT III: Outdoor Valley Dam Deck */}
+      {/* ACT III: Outdoor Valley Dam Deck + Buttresses */}
       <mesh position={[29.5, 1.0, 0]} receiveShadow>
         <boxGeometry args={[11, 1, 16]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.75} />
+        <meshStandardMaterial color="#182235" roughness={0.75} metalness={0.25} />
       </mesh>
+      {/* Dam Concrete Buttresses */}
+      {[-5.5, 0, 5.5].map((zPos, i) => (
+        <mesh key={i} position={[34.8, 2.2, zPos]} castShadow>
+          <boxGeometry args={[1.2, 2.6, 1.1]} />
+          <meshStandardMaterial color="#334155" roughness={0.7} />
+        </mesh>
+      ))}
 
       {/* Floodwater Plane */}
-      <mesh position={[33, damRaised ? 0.2 : 1.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[8, 22]} />
+      <mesh position={[33.2, damRaised ? 0.15 : 1.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[8.5, 22]} />
         <meshStandardMaterial
           color="#0284c7"
           emissive="#0369a1"
-          emissiveIntensity={0.4}
+          emissiveIntensity={0.45}
           transparent
-          opacity={0.75}
+          opacity={0.78}
         />
       </mesh>
 
       {/* Twin 3D Hydraulic Floodgates */}
-      {[-3.2, 3.2].map((zPos, idx) => (
-        <mesh key={idx} position={[34.2, damRaised ? 3.8 : 1.8, zPos]} castShadow>
-          <boxGeometry args={[0.8, 2.8, 4.8]} />
+      {[-3.0, 3.0].map((zPos, idx) => (
+        <mesh key={idx} position={[34.2, damRaised ? 3.9 : 1.85, zPos]} castShadow>
+          <boxGeometry args={[0.8, 2.8, 4.5]} />
           <meshStandardMaterial
             color={damRaised ? '#10b981' : '#f59e0b'}
             emissive={damRaised ? '#10b981' : '#f59e0b'}
-            emissiveIntensity={0.6}
-            metalness={0.5}
+            emissiveIntensity={0.65}
+            metalness={0.55}
           />
         </mesh>
       ))}
@@ -601,11 +772,11 @@ const SceneContent: React.FC<GameWorldProps> = ({
                 onInterceptThreat(threat.id);
               }}
             >
-              <boxGeometry args={[0.9, 0.9, 0.9]} />
+              <octahedronGeometry args={[0.62, 0]} />
               <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.5} />
             </mesh>
             {!hideLabels && (
-              <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
+              <Html position={[0, 0.95, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
                 <button
                   onClick={() => onInterceptThreat(threat.id)}
                   className="px-2.5 py-0.5 rounded-md bg-red-600/90 hover:bg-emerald-600 text-white text-[10px] font-bold border border-red-300 shadow cursor-pointer whitespace-nowrap"
@@ -654,7 +825,7 @@ const SceneContent: React.FC<GameWorldProps> = ({
 export const GameWorld25D: React.FC<GameWorldProps> = (props) => {
   return (
     <div className="w-full h-full relative">
-      <Canvas shadows camera={{ fov: 45, near: 0.1, far: 120, position: [-15, 10.5, 15.5] }}>
+      <Canvas shadows camera={{ fov: 45, near: 0.1, far: 120, position: [-15, 10.8, 15.8] }}>
         <SceneContent {...props} />
       </Canvas>
     </div>
