@@ -1,0 +1,17 @@
+{
+  "name": "edge-of-survival",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EDGE OF SURVIVAL — 2.5D Edge Computing & Edge AI Browser Game (Presented by Abad, Chua, Napiza)",
+  "scripts": {
+    "install:all": "npm --prefix client install && npm --prefix server install",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build": "npm run build:client && npm run build:server",
+    "db:generate": "npm --prefix server run db:generate",
+    "db:push": "npm --prefix server run db:push",
+    "typecheck": "npm --prefix client run typecheck && npm --prefix server run typecheck"
+  }
+}

@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id           String        @id @default(cuid())
+  nickname     String        @unique
+  createdAt    DateTime      @default(now())
+  runs         GameRun[]
+  codexUnlocks CodexUnlock[]
+}
+
+model GameRun {
+  id               String   @id @default(cuid())
+  playerId         String
+  player           Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  currentChapter   Int      @default(1)
+  completed        Boolean  @default(false)
+  bestLatencyMs    Float    @default(999.0)
+  bandwidthSavedPct Float   @default(0.0)
+  securityScore    Int      @default(0)
+  totalTimeSeconds Int      @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+model CodexUnlock {
+  id            String   @id @default(cuid())
+  playerId      String
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  chapterNumber Int
+  conceptTitle  String
+  unlockedAt    DateTime @default(now())
+
+  @@unique([playerId, chapterNumber, conceptTitle])
+}
