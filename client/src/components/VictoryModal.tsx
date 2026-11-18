@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, BookOpen, Globe2, Smartphone, Sparkles, Trophy } from 'lucide-react';
+import { Award, BookOpen, Globe2, Grid3X3, Smartphone, Sparkles, Trophy } from 'lucide-react';
 import { GameRunState } from '../types/game';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   run: GameRunState;
   onOpenCodex: () => void;
   onOpenLeaderboard: () => void;
+  onOpenMinigame: () => void;
   onContinueExplore: () => void;
 }
 
@@ -15,6 +16,7 @@ export const VictoryModal: React.FC<Props> = ({
   run,
   onOpenCodex,
   onOpenLeaderboard,
+  onOpenMinigame,
   onContinueExplore,
 }) => {
   return (
@@ -100,6 +102,12 @@ export const VictoryModal: React.FC<Props> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <div className="flex flex-wrap gap-2">
+            <button
+              onClick={onOpenMinigame}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-teal-500/20 cursor-pointer"
+            >
+              <Grid3X3 className="w-4 h-4" /> Play Edge Blocks Minigame
+            </button>
             <button
               onClick={onOpenCodex}
               className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer"

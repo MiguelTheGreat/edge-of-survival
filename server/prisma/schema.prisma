@@ -38,3 +38,12 @@ model CodexUnlock {
 
   @@unique([playerId, chapterNumber, conceptTitle])
 }
+
+model MinigameScore {
+  id           String   @id @default(cuid())
+  nickname     String
+  score        Int
+  linesCleared Int      @default(0)
+  maxCombo     Int      @default(1)
+  createdAt    DateTime @default(now())
+}

@@ -78,3 +78,13 @@ export interface CodexEntryData {
   }[];
   citation?: string;
 }
+
+export interface MinigameLeaderboardEntry {
+  rank: number;
+  id: string;
+  nickname: string;
+  score: number;
+  linesCleared: number;
+  maxCombo: number;
+  createdAt: string;
+}

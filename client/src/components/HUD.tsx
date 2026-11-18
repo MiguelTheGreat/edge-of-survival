@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   BookOpen,
+  Grid3X3,
   Trophy,
   Volume2,
   VolumeX,
@@ -19,6 +20,7 @@ interface Props {
   onToggleMute: () => void;
   onOpenCodex: () => void;
   onOpenLeaderboard: () => void;
+  onOpenMinigame: () => void;
   nearStation: StationConfig | null;
   onInteract: () => void;
   latestMilestone: MilestoneEvent | null;
@@ -34,6 +36,7 @@ export const HUD: React.FC<Props> = ({
   onToggleMute,
   onOpenCodex,
   onOpenLeaderboard,
+  onOpenMinigame,
   nearStation,
   onInteract,
   latestMilestone,
@@ -117,6 +120,15 @@ export const HUD: React.FC<Props> = ({
             {mode === 'live' ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             {mode === 'live' ? 'LIVE' : 'PAGES LOCAL'}
           </span>
+
+          {run.completed && (
+            <button
+              onClick={onOpenMinigame}
+              className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/35 border border-teal-400/50 text-teal-200 text-xs font-bold flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            >
+              <Grid3X3 className="w-4 h-4" /> Edge Blocks
+            </button>
+          )}
 
           <button
             onClick={onOpenCodex}

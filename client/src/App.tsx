@@ -5,6 +5,7 @@ import { HUD } from './components/HUD';
 import { CodexModal } from './components/CodexModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { VictoryModal } from './components/VictoryModal';
+import { EdgeBlocksMinigameModal } from './components/EdgeBlocksMinigameModal';
 import { Chapter1MuralModal } from './components/puzzles/Chapter1MuralModal';
 import { Chapter2TimelineModal } from './components/puzzles/Chapter2TimelineModal';
 import { Chapter3CalibrationModal } from './components/puzzles/Chapter3CalibrationModal';
@@ -53,6 +54,7 @@ export function App() {
   const [showCodex, setShowCodex] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
+  const [showMinigame, setShowMinigame] = useState(false);
   const [muted, setMuted] = useState(false);
   const [interactSignal, setInteractSignal] = useState(0);
 
@@ -222,7 +224,7 @@ export function App() {
         joystickVectorRef={joystickVectorRef}
         interactSignal={interactSignal}
         damRaised={damRaised}
-        hideLabels={Boolean(activePuzzle) || showCodex || showLeaderboard || showVictory}
+        hideLabels={Boolean(activePuzzle) || showCodex || showLeaderboard || showVictory || showMinigame}
       />
 
       <HUD
@@ -233,11 +235,12 @@ export function App() {
         onToggleMute={() => setMuted(audioEngine.toggleMute())}
         onOpenCodex={() => setShowCodex(true)}
         onOpenLeaderboard={() => setShowLeaderboard(true)}
+        onOpenMinigame={() => setShowMinigame(true)}
         nearStation={nearStation}
         onInteract={() => setInteractSignal((s) => s + 1)}
         latestMilestone={latestMilestone}
         joystickVectorRef={joystickVectorRef}
-        hideControls={Boolean(activePuzzle) || climaxActive || showCodex || showLeaderboard || showVictory}
+        hideControls={Boolean(activePuzzle) || climaxActive || showCodex || showLeaderboard || showVictory || showMinigame}
       />
 
       {/* Chapter Puzzles */}
@@ -351,6 +354,10 @@ export function App() {
         <VictoryModal
           nickname={player.nickname}
           run={run}
+          onOpenMinigame={() => {
+            setShowVictory(false);
+            setShowMinigame(true);
+          }}
           onOpenCodex={() => {
             setShowVictory(false);
             setShowCodex(true);
@@ -360,6 +367,13 @@ export function App() {
             setShowLeaderboard(true);
           }}
           onContinueExplore={() => setShowVictory(false)}
+        />
+      )}
+
+      {showMinigame && (
+        <EdgeBlocksMinigameModal
+          nickname={player.nickname}
+          onClose={() => setShowMinigame(false)}
         />
       )}
     </div>

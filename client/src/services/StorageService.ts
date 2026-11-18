@@ -4,6 +4,7 @@ import {
   GameRunState,
   LeaderboardEntry,
   MilestoneEvent,
+  MinigameLeaderboardEntry,
   PlayerSession,
 } from '../types/game';
 
@@ -14,6 +15,37 @@ const LS_RUN_KEY = 'eos_run_v1';
 const LS_CODEX_KEY = 'eos_codex_v1';
 const LS_LEADERBOARD_KEY = 'eos_leaderboard_v1';
 const LS_MILESTONES_KEY = 'eos_milestones_v1';
+const LS_MINIGAME_LB_KEY = 'eos_minigame_lb_v1';
+
+const SEEDED_MINIGAME_SCORES: MinigameLeaderboardEntry[] = [
+  {
+    rank: 1,
+    id: 'mg-seed-1',
+    nickname: 'Abad_CpE',
+    score: 1420,
+    linesCleared: 11,
+    maxCombo: 3,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    rank: 2,
+    id: 'mg-seed-2',
+    nickname: 'Chua_Edge',
+    score: 980,
+    linesCleared: 8,
+    maxCombo: 2,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    rank: 3,
+    id: 'mg-seed-3',
+    nickname: 'Napiza_TinyML',
+    score: 760,
+    linesCleared: 6,
+    maxCombo: 2,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 const SEEDED_CLASSMATES: LeaderboardEntry[] = [
   {
@@ -419,6 +451,74 @@ class StorageService {
     });
 
     return combined.map((entry, idx) => ({ ...entry, rank: idx + 1 }));
+  }
+
+  public async saveMinigameScore(payload: {
+    nickname: string;
+    score: number;
+    linesCleared: number;
+    maxCombo: number;
+  }): Promise<void> {
+    if (this.mode === 'live' && API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/minigame/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) return;
+      } catch {
+        // fallback to localStorage
+      }
+    }
+
+    try {
+      const raw = localStorage.getItem(LS_MINIGAME_LB_KEY);
+      const list: MinigameLeaderboardEntry[] = raw
+        ? (JSON.parse(raw) as MinigameLeaderboardEntry[])
+        : [];
+      list.push({
+        rank: 1,
+        id: `mg-local-${Date.now()}`,
+        nickname: payload.nickname,
+        score: payload.score,
+        linesCleared: payload.linesCleared,
+        maxCombo: payload.maxCombo,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem(LS_MINIGAME_LB_KEY, JSON.stringify(list));
+    } catch {
+      // ignore
+    }
+  }
+
+  public async getMinigameLeaderboard(): Promise<MinigameLeaderboardEntry[]> {
+    if (this.mode === 'live' && API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/minigame/leaderboard`);
+        if (res.ok) {
+          const data = await res.json();
+          return data.leaderboard ?? [];
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    let localEntries: MinigameLeaderboardEntry[] = [];
+    try {
+      const raw = localStorage.getItem(LS_MINIGAME_LB_KEY);
+      if (raw) localEntries = JSON.parse(raw) as MinigameLeaderboardEntry[];
+    } catch {
+      // ignore
+    }
+
+    const combined = [...localEntries, ...SEEDED_MINIGAME_SCORES];
+    combined.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return b.linesCleared - a.linesCleared;
+    });
+    return combined.map((entry, idx) => ({ ...entry, rank: idx + 1 })).slice(0, 30);
   }
 
   public resetLocalProgress(): void {

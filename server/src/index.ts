@@ -274,6 +274,67 @@ app.get('/api/leaderboard', async (_req: Request, res: Response) => {
   }
 });
 
+app.post('/api/minigame/score', async (req: Request, res: Response) => {
+  try {
+    const rawNickname = typeof req.body?.nickname === 'string' ? req.body.nickname.trim() : '';
+    const nickname = rawNickname.slice(0, 24) || 'John';
+    const score = typeof req.body?.score === 'number' ? Math.max(0, Math.floor(req.body.score)) : 0;
+    const linesCleared =
+      typeof req.body?.linesCleared === 'number' ? Math.max(0, Math.floor(req.body.linesCleared)) : 0;
+    const maxCombo =
+      typeof req.body?.maxCombo === 'number' ? Math.max(1, Math.floor(req.body.maxCombo)) : 1;
+
+    const entry = await prisma.minigameScore.create({
+      data: {
+        nickname,
+        score,
+        linesCleared,
+        maxCombo,
+      },
+    });
+
+    if (score >= 500) {
+      pushMilestone({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        nickname,
+        message: `${nickname} scored ${score} pts in Edge Blocks!`,
+        chapter: 12,
+        latencyMs: 0,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    res.json({ entry });
+  } catch (error) {
+    console.error('Error in /api/minigame/score:', error);
+    res.status(500).json({ error: 'Failed to save minigame score' });
+  }
+});
+
+app.get('/api/minigame/leaderboard', async (_req: Request, res: Response) => {
+  try {
+    const rows = await prisma.minigameScore.findMany({
+      orderBy: [{ score: 'desc' }, { linesCleared: 'desc' }, { createdAt: 'asc' }],
+      take: 30,
+    });
+
+    const leaderboard = rows.map((row, idx) => ({
+      rank: idx + 1,
+      id: row.id,
+      nickname: row.nickname,
+      score: row.score,
+      linesCleared: row.linesCleared,
+      maxCombo: row.maxCombo,
+      createdAt: row.createdAt,
+    }));
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error('Error in /api/minigame/leaderboard:', error);
+    res.status(500).json({ error: 'Failed to load minigame leaderboard' });
+  }
+});
+
 io.on('connection', (socket) => {
   socket.emit('milestones:init', recentMilestones);
 });
