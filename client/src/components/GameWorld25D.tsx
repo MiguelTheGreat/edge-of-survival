@@ -67,9 +67,9 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
   interactSignal,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const ring1Ref = useRef<THREE.Mesh>(null);
   const ring2Ref = useRef<THREE.Mesh>(null);
@@ -227,75 +227,133 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
         castShadow
       />
 
-      {/* Articulated Legs */}
-      <mesh ref={leftLegRef} position={[-0.17, 0.36, 0]} castShadow>
-        <capsuleGeometry args={[0.1, 0.45, 6, 12]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.55} metalness={0.2} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.17, 0.36, 0]} castShadow>
-        <capsuleGeometry args={[0.1, 0.45, 6, 12]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.55} metalness={0.2} />
-      </mesh>
+      {/* Articulated High-Poly Left Leg + Knee Guard + Boot */}
+      <group ref={leftLegRef} position={[-0.17, 0.38, 0]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.105, 0.42, 16, 24]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.5} metalness={0.25} />
+        </mesh>
+        <mesh position={[0, 0.04, 0.095]} castShadow>
+          <sphereGeometry args={[0.075, 16, 16]} />
+          <meshStandardMaterial color="#334155" metalness={0.55} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.26, 0.04]} castShadow>
+          <cylinderGeometry args={[0.11, 0.125, 0.18, 24]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.5} roughness={0.35} />
+        </mesh>
+      </group>
 
-      {/* Torso (Armored Engineer Jacket) */}
+      {/* Articulated High-Poly Right Leg + Knee Guard + Boot */}
+      <group ref={rightLegRef} position={[0.17, 0.38, 0]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.105, 0.42, 16, 24]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.5} metalness={0.25} />
+        </mesh>
+        <mesh position={[0, 0.04, 0.095]} castShadow>
+          <sphereGeometry args={[0.075, 16, 16]} />
+          <meshStandardMaterial color="#334155" metalness={0.55} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.26, 0.04]} castShadow>
+          <cylinderGeometry args={[0.11, 0.125, 0.18, 24]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.5} roughness={0.35} />
+        </mesh>
+      </group>
+
+      {/* Sculpted High-Poly Torso & Armored Chestplate */}
       <mesh position={[0, 1.05, 0]} castShadow>
-        <cylinderGeometry args={[0.29, 0.25, 0.76, 8]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.35} />
+        <cylinderGeometry args={[0.3, 0.24, 0.76, 32]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.38} metalness={0.4} />
       </mesh>
-      {/* Shoulder Pauldrons */}
-      <mesh position={[-0.36, 1.32, 0]} castShadow>
-        <dodecahedronGeometry args={[0.14, 0]} />
-        <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.35} />
+      {/* Tactical Belt & Collar */}
+      <mesh position={[0, 0.72, 0]} castShadow>
+        <cylinderGeometry args={[0.255, 0.255, 0.1, 32]} />
+        <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
       </mesh>
-      <mesh position={[0.36, 1.32, 0]} castShadow>
-        <dodecahedronGeometry args={[0.14, 0]} />
-        <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.35} />
-      </mesh>
-
-      {/* Edge Backpack Power-Cell */}
-      <mesh position={[0, 1.1, -0.26]} castShadow>
-        <boxGeometry args={[0.38, 0.48, 0.16]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 1.12, -0.35]}>
-        <cylinderGeometry args={[0.06, 0.06, 0.34, 12]} />
-        <meshStandardMaterial color={auraColor} emissive={auraColor} emissiveIntensity={2.2} />
+      <mesh position={[0, 1.43, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.22, 0.045, 16, 32]} />
+        <meshStandardMaterial color="#334155" metalness={0.55} roughness={0.35} />
       </mesh>
 
-      {/* Glowing Chest Core */}
-      <mesh position={[0, 1.1, 0.26]}>
-        <octahedronGeometry args={[0.11, 0]} />
+      {/* Smooth Spherical Shoulder Pauldrons */}
+      <mesh position={[-0.37, 1.32, 0]} castShadow>
+        <sphereGeometry args={[0.15, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
+        <meshStandardMaterial color="#334155" metalness={0.55} roughness={0.3} />
+      </mesh>
+      <mesh position={[0.37, 1.32, 0]} castShadow>
+        <sphereGeometry args={[0.15, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
+        <meshStandardMaterial color="#334155" metalness={0.55} roughness={0.3} />
+      </mesh>
+
+      {/* Detailed Edge Backpack Power-Cell + Cooling Fins + Antenna */}
+      <mesh position={[0, 1.1, -0.27]} castShadow>
+        <cylinderGeometry args={[0.2, 0.22, 0.48, 24]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.55} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 1.12, -0.37]}>
+        <cylinderGeometry args={[0.065, 0.065, 0.34, 24]} />
         <meshStandardMaterial color={auraColor} emissive={auraColor} emissiveIntensity={2.4} />
       </mesh>
-
-      {/* Head & Visor */}
-      <mesh position={[0, 1.66, 0]} castShadow>
-        <sphereGeometry args={[0.24, 16, 16]} />
-        <meshStandardMaterial color="#f1c27d" roughness={0.55} />
-      </mesh>
-      <mesh position={[0, 1.72, 0.02]} castShadow>
-        <sphereGeometry args={[0.255, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.4} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 1.68, 0.21]}>
-        <boxGeometry args={[0.32, 0.09, 0.06]} />
-        <meshStandardMaterial color="#2dd4bf" emissive="#06b6d4" emissiveIntensity={2.0} />
+      <mesh position={[-0.14, 1.48, -0.28]}>
+        <cylinderGeometry args={[0.012, 0.018, 0.35, 12]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.8} />
       </mesh>
 
-      {/* Left Arm */}
-      <mesh ref={leftArmRef} position={[-0.4, 1.02, 0]} castShadow>
-        <capsuleGeometry args={[0.08, 0.46, 6, 10]} />
-        <meshStandardMaterial color="#334155" metalness={0.3} />
+      {/* Multi-Faceted Glowing Chest Reactor + Bezel */}
+      <mesh position={[0, 1.12, 0.27]}>
+        <torusGeometry args={[0.11, 0.024, 16, 32]} />
+        <meshStandardMaterial color="#475569" metalness={0.7} roughness={0.25} />
+      </mesh>
+      <mesh position={[0, 1.12, 0.28]}>
+        <icosahedronGeometry args={[0.095, 1]} />
+        <meshStandardMaterial color={auraColor} emissive={auraColor} emissiveIntensity={2.6} />
       </mesh>
 
-      {/* Right Arm + Holographic Wrist Gauntlet */}
-      <group ref={rightArmRef} position={[0.4, 1.02, 0.05]}>
-        <mesh castShadow>
-          <capsuleGeometry args={[0.08, 0.46, 6, 10]} />
-          <meshStandardMaterial color="#334155" metalness={0.3} />
+      {/* High-Poly Head, Sculpted Helmet, Curved Visor & Ear Comms */}
+      <mesh position={[0, 1.67, 0]} castShadow>
+        <sphereGeometry args={[0.24, 32, 24]} />
+        <meshStandardMaterial color="#f1c27d" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 1.72, 0.01]} castShadow>
+        <sphereGeometry args={[0.26, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.56]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.45} roughness={0.35} />
+      </mesh>
+      {/* Curved Panoramic Visor */}
+      <mesh position={[0, 1.68, 0.04]} rotation={[0, -Math.PI * 0.38, 0]}>
+        <cylinderGeometry args={[0.23, 0.23, 0.095, 32, 1, true, 0, Math.PI * 0.76]} />
+        <meshStandardMaterial color="#2dd4bf" emissive="#06b6d4" emissiveIntensity={2.2} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Ear Comms Pods */}
+      {[-0.25, 0.25].map((xEar, i) => (
+        <mesh key={i} position={[xEar, 1.68, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.055, 0.055, 0.05, 16]} />
+          <meshStandardMaterial color="#334155" emissive={auraColor} emissiveIntensity={0.8} metalness={0.6} />
         </mesh>
-        <mesh position={[0, -0.22, 0.06]}>
-          <torusGeometry args={[0.13, 0.03, 10, 24]} />
+      ))}
+
+      {/* High-Poly Left Arm + Gloved Hand */}
+      <group ref={leftArmRef} position={[-0.41, 1.02, 0]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.082, 0.44, 16, 24]} />
+          <meshStandardMaterial color="#334155" metalness={0.35} />
+        </mesh>
+        <mesh position={[0, -0.28, 0]} castShadow>
+          <sphereGeometry args={[0.085, 16, 16]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.4} />
+        </mesh>
+      </group>
+
+      {/* High-Poly Right Arm + Gloved Hand + Holographic Wrist Gauntlet */}
+      <group ref={rightArmRef} position={[0.41, 1.02, 0.05]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.082, 0.44, 16, 24]} />
+          <meshStandardMaterial color="#334155" metalness={0.35} />
+        </mesh>
+        <mesh position={[0, -0.28, 0]} castShadow>
+          <sphereGeometry args={[0.085, 16, 16]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.4} />
+        </mesh>
+        <mesh position={[0, -0.19, 0.03]}>
+          <torusGeometry args={[0.12, 0.028, 16, 32]} />
           <meshStandardMaterial color="#2dd4bf" emissive="#06b6d4" emissiveIntensity={2.6} />
         </mesh>
       </group>
