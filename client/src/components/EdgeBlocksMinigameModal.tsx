@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Grid3X3, RotateCcw, Trophy, Sparkles, X, RefreshCw } from 'lucide-react';
 import { audioEngine } from '../services/AudioEngine';
 import { storageService } from '../services/StorageService';
@@ -63,6 +63,12 @@ function randomTray(): (PieceShape | null)[] {
   });
 }
 
+function getPieceDims(piece: PieceShape) {
+  const rows = Math.max(...piece.cells.map(([r]) => r)) + 1;
+  const cols = Math.max(...piece.cells.map(([, c]) => c)) + 1;
+  return { rows, cols };
+}
+
 function canPlace(
   grid: (string | null)[][],
   piece: PieceShape,
@@ -94,8 +100,13 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
   const [tab, setTab] = useState<'play' | 'leaderboard'>('play');
   const [grid, setGrid] = useState<(string | null)[][]>(createEmptyGrid);
   const [tray, setTray] = useState<(PieceShape | null)[]>(() => randomTray());
-  const [selectedIdx, setSelectedIdx] = useState<number>(0);
-  const [hoverCell, setHoverCell] = useState<[number, number] | null>(null);
+  const [flashingCells, setFlashingCells] = useState<Set<string>>(new Set());
+
+  // True drag-and-drop state
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [snapTarget, setSnapTarget] = useState<[number, number] | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const [score, setScore] = useState(0);
   const [linesCleared, setLinesCleared] = useState(0);
@@ -120,98 +131,181 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
     }
   }, [tab]);
 
-  const activePiece = tray[selectedIdx] ?? null;
+  const draggedPiece = dragIdx !== null ? tray[dragIdx] : null;
 
-  const previewCells = useMemo(() => {
-    if (!activePiece || !hoverCell || gameOver) return { cells: new Set<string>(), valid: false };
-    const [hr, hc] = hoverCell;
-    const valid = canPlace(grid, activePiece, hr, hc);
+  // Compute grid snap [baseR, baseC] from pointer coordinates
+  const computeSnap = useCallback(
+    (clientX: number, clientY: number, piece: PieceShape | null): [number, number] | null => {
+      if (!piece || !gridRef.current) return null;
+      const rect = gridRef.current.getBoundingClientRect();
+      const cellW = rect.width / GRID_SIZE;
+      const cellH = rect.height / GRID_SIZE;
+
+      // Slight upward offset so finger/cursor doesn't obscure placement
+      const pointerY = clientY - cellH * 0.6;
+      const { rows, cols } = getPieceDims(piece);
+
+      const relX = clientX - rect.left;
+      const relY = pointerY - rect.top;
+
+      if (relX < -cellW || relX > rect.width + cellW || relY < -cellH || relY > rect.height + cellH) {
+        return null;
+      }
+
+      const baseC = Math.round(relX / cellW - cols / 2);
+      const baseR = Math.round(relY / cellH - rows / 2);
+      return [baseR, baseC];
+    },
+    []
+  );
+
+  const commitPlacement = useCallback(
+    async (pieceIdx: number, r: number, c: number) => {
+      const piece = tray[pieceIdx];
+      if (!piece || gameOver) return;
+      if (!canPlace(grid, piece, r, c)) return;
+
+      audioEngine.playInteract();
+      const nextGrid = grid.map((row) => [...row]);
+      for (const [dr, dc] of piece.cells) {
+        nextGrid[r + dr][c + dc] = piece.color;
+      }
+
+      const fullRows: number[] = [];
+      const fullCols: number[] = [];
+      for (let i = 0; i < GRID_SIZE; i++) {
+        if (nextGrid[i].every((cell) => cell !== null)) fullRows.push(i);
+        if (nextGrid.every((row) => row[i] !== null)) fullCols.push(i);
+      }
+
+      const clearedKeys = new Set<string>();
+      for (const ri of fullRows) {
+        for (let ci = 0; ci < GRID_SIZE; ci++) {
+          clearedKeys.add(`${ri}-${ci}`);
+          nextGrid[ri][ci] = null;
+        }
+      }
+      for (const ci of fullCols) {
+        for (let ri = 0; ri < GRID_SIZE; ri++) {
+          clearedKeys.add(`${ri}-${ci}`);
+          nextGrid[ri][ci] = null;
+        }
+      }
+
+      if (clearedKeys.size > 0) {
+        setFlashingCells(clearedKeys);
+        setTimeout(() => setFlashingCells(new Set()), 220);
+      }
+
+      const clearedCount = fullRows.length + fullCols.length;
+      const nextCombo = clearedCount > 0 ? combo + 1 : 0;
+      const nextMaxCombo = Math.max(maxCombo, Math.max(1, nextCombo));
+      const placedPoints = piece.cells.length * 10;
+      const clearPoints = clearedCount > 0 ? clearedCount * 100 * Math.max(1, nextCombo) : 0;
+      const nextScore = score + placedPoints + clearPoints;
+
+      if (clearedCount > 0) {
+        audioEngine.playHologramChime();
+      }
+
+      let nextTray = tray.map((p, idx) => (idx === pieceIdx ? null : p));
+      if (nextTray.every((p) => p === null)) {
+        nextTray = randomTray();
+      }
+
+      setGrid(nextGrid);
+      setTray(nextTray);
+      setScore(nextScore);
+      setLinesCleared((prev) => prev + clearedCount);
+      setCombo(nextCombo);
+      setMaxCombo(nextMaxCombo);
+
+      if (!hasAnyValidMove(nextGrid, nextTray)) {
+        setGameOver(true);
+        audioEngine.playWarningKlaxon();
+        if (!scoreSaved) {
+          setScoreSaved(true);
+          await storageService.saveMinigameScore({
+            nickname,
+            score: nextScore,
+            linesCleared: linesCleared + clearedCount,
+            maxCombo: nextMaxCombo,
+          });
+        }
+      }
+    },
+    [tray, gameOver, grid, combo, maxCombo, score, scoreSaved, nickname, linesCleared]
+  );
+
+  // Global pointer move & pointer up listeners while dragging
+  useEffect(() => {
+    if (dragIdx === null) return;
+    const piece = tray[dragIdx];
+
+    const handlePointerMove = (e: PointerEvent) => {
+      setDragPos({ x: e.clientX, y: e.clientY });
+      setSnapTarget(computeSnap(e.clientX, e.clientY, piece));
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      const target = computeSnap(e.clientX, e.clientY, piece);
+      if (target && piece && canPlace(grid, piece, target[0], target[1])) {
+        commitPlacement(dragIdx, target[0], target[1]);
+      }
+      setDragIdx(null);
+      setDragPos(null);
+      setSnapTarget(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [dragIdx, tray, grid, computeSnap, commitPlacement]);
+
+  // Live preview + which rows/cols are about to clear!
+  const preview = useMemo(() => {
+    if (!draggedPiece || !snapTarget || gameOver) {
+      return { cells: new Set<string>(), valid: false, willClearRows: new Set<number>(), willClearCols: new Set<number>() };
+    }
+    const [br, bc] = snapTarget;
+    const valid = canPlace(grid, draggedPiece, br, bc);
     const cells = new Set<string>();
-    for (const [dr, dc] of activePiece.cells) {
-      const r = hr + dr;
-      const c = hc + dc;
+    for (const [dr, dc] of draggedPiece.cells) {
+      const r = br + dr;
+      const c = bc + dc;
       if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
         cells.add(`${r}-${c}`);
       }
     }
-    return { cells, valid };
-  }, [activePiece, hoverCell, grid, gameOver]);
 
-  const handlePlace = async (r: number, c: number) => {
-    if (gameOver || !activePiece) return;
-    if (!canPlace(grid, activePiece, r, c)) {
-      audioEngine.playWarningKlaxon();
-      return;
-    }
-
-    audioEngine.playInteract();
-    const nextGrid = grid.map((row) => [...row]);
-    for (const [dr, dc] of activePiece.cells) {
-      nextGrid[r + dr][c + dc] = activePiece.color;
-    }
-
-    // Check full rows and columns
-    const fullRows: number[] = [];
-    const fullCols: number[] = [];
-    for (let i = 0; i < GRID_SIZE; i++) {
-      if (nextGrid[i].every((cell) => cell !== null)) fullRows.push(i);
-      if (nextGrid.every((row) => row[i] !== null)) fullCols.push(i);
-    }
-
-    for (const ri of fullRows) {
-      for (let ci = 0; ci < GRID_SIZE; ci++) nextGrid[ri][ci] = null;
-    }
-    for (const ci of fullCols) {
-      for (let ri = 0; ri < GRID_SIZE; ri++) nextGrid[ri][ci] = null;
-    }
-
-    const clearedCount = fullRows.length + fullCols.length;
-    const nextCombo = clearedCount > 0 ? combo + 1 : 0;
-    const nextMaxCombo = Math.max(maxCombo, Math.max(1, nextCombo));
-    const placedPoints = activePiece.cells.length * 10;
-    const clearPoints = clearedCount > 0 ? clearedCount * 100 * Math.max(1, nextCombo) : 0;
-    const nextScore = score + placedPoints + clearPoints;
-
-    if (clearedCount > 0) {
-      audioEngine.playHologramChime();
-    }
-
-    let nextTray = tray.map((p, idx) => (idx === selectedIdx ? null : p));
-    if (nextTray.every((p) => p === null)) {
-      nextTray = randomTray();
-    }
-
-    const nextSelected = nextTray.findIndex((p) => p !== null);
-
-    setGrid(nextGrid);
-    setTray(nextTray);
-    setSelectedIdx(nextSelected >= 0 ? nextSelected : 0);
-    setScore(nextScore);
-    setLinesCleared((prev) => prev + clearedCount);
-    setCombo(nextCombo);
-    setMaxCombo(nextMaxCombo);
-
-    if (!hasAnyValidMove(nextGrid, nextTray)) {
-      setGameOver(true);
-      audioEngine.playWarningKlaxon();
-      if (!scoreSaved) {
-        setScoreSaved(true);
-        await storageService.saveMinigameScore({
-          nickname,
-          score: nextScore,
-          linesCleared: linesCleared + clearedCount,
-          maxCombo: nextMaxCombo,
-        });
+    const willClearRows = new Set<number>();
+    const willClearCols = new Set<number>();
+    if (valid) {
+      const testGrid = grid.map((row) => [...row]);
+      for (const [dr, dc] of draggedPiece.cells) {
+        testGrid[br + dr][bc + dc] = draggedPiece.color;
+      }
+      for (let i = 0; i < GRID_SIZE; i++) {
+        if (testGrid[i].every((c) => c !== null)) willClearRows.add(i);
+        if (testGrid.every((r) => r[i] !== null)) willClearCols.add(i);
       }
     }
-  };
+
+    return { cells, valid, willClearRows, willClearCols };
+  }, [draggedPiece, snapTarget, grid, gameOver]);
 
   const handleRestart = () => {
     audioEngine.playInteract();
     setGrid(createEmptyGrid());
     setTray(randomTray());
-    setSelectedIdx(0);
-    setHoverCell(null);
+    setDragIdx(null);
+    setDragPos(null);
+    setSnapTarget(null);
     setScore(0);
     setLinesCleared(0);
     setCombo(0);
@@ -221,7 +315,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 select-none">
       <div className="w-full max-w-2xl bg-slate-900 border border-teal-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
@@ -230,7 +324,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
             <div>
               <h2 className="text-lg font-bold text-white">Edge Blocks — Silicon Matrix</h2>
               <p className="text-xs text-slate-400">
-                Bonus Post-Game Minigame • Clear rows &amp; columns for combo multipliers
+                Drag blocks from the tray onto the 8×8 grid • Release to drop
               </p>
             </div>
           </div>
@@ -315,28 +409,32 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
 
             {/* 8x8 Grid */}
             <div
-              className="grid grid-cols-8 gap-1 p-2.5 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner"
-              onMouseLeave={() => setHoverCell(null)}
+              ref={gridRef}
+              className="grid grid-cols-8 gap-1 p-2.5 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner touch-none"
             >
               {grid.map((row, r) =>
                 row.map((cellColor, c) => {
                   const key = `${r}-${c}`;
-                  const isPreview = previewCells.cells.has(key);
+                  const isPreview = preview.cells.has(key);
+                  const isFlashing = flashingCells.has(key);
+                  const aboutToClear = preview.willClearRows.has(r) || preview.willClearCols.has(c);
+
                   return (
-                    <button
+                    <div
                       key={key}
-                      onMouseEnter={() => setHoverCell([r, c])}
-                      onClick={() => handlePlace(r, c)}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md border transition-all cursor-pointer ${
-                        cellColor
-                          ? `${COLOR_CLASSES[cellColor]} shadow-md`
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md border transition-all duration-100 ${
+                        isFlashing
+                          ? 'bg-white border-teal-200 scale-110 shadow-lg shadow-white/60'
                           : isPreview
-                          ? previewCells.valid
-                            ? 'bg-emerald-400/50 border-emerald-300 scale-95'
+                          ? preview.valid
+                            ? 'bg-emerald-400/65 border-emerald-200 scale-95 shadow-md shadow-emerald-400/30'
                             : 'bg-red-500/45 border-red-400'
-                          : 'bg-slate-900/90 border-slate-800/90 hover:border-slate-700'
+                          : cellColor
+                          ? `${COLOR_CLASSES[cellColor]} shadow-md ${
+                              aboutToClear ? 'ring-2 ring-white brightness-125' : ''
+                            }`
+                          : 'bg-slate-900/90 border-slate-800/90'
                       }`}
-                      aria-label={`Grid cell ${r},${c}`}
                     />
                   );
                 })
@@ -370,7 +468,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
                 </div>
               </div>
             ) : (
-              /* 3-Piece Tray */
+              /* 3-Piece Draggable Tray */
               <div className="w-full grid grid-cols-3 gap-3">
                 {tray.map((piece, idx) => {
                   if (!piece) {
@@ -383,31 +481,33 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
                       </div>
                     );
                   }
-                  const maxR = Math.max(...piece.cells.map(([r]) => r)) + 1;
-                  const maxC = Math.max(...piece.cells.map(([, c]) => c)) + 1;
-                  const isSelected = selectedIdx === idx;
+                  const { rows, cols } = getPieceDims(piece);
+                  const isBeingDragged = dragIdx === idx;
                   return (
-                    <button
+                    <div
                       key={piece.id}
-                      onClick={() => {
+                      onPointerDown={(e) => {
+                        e.preventDefault();
                         audioEngine.playInteract();
-                        setSelectedIdx(idx);
+                        setDragIdx(idx);
+                        setDragPos({ x: e.clientX, y: e.clientY });
+                        setSnapTarget(computeSnap(e.clientX, e.clientY, piece));
                       }}
-                      className={`h-24 rounded-xl border flex items-center justify-center p-2 transition cursor-pointer ${
-                        isSelected
-                          ? 'bg-teal-950/50 border-teal-400 ring-2 ring-teal-400/40'
-                          : 'bg-slate-950/70 border-slate-800 hover:border-slate-600'
+                      className={`h-24 rounded-xl border flex items-center justify-center p-2 transition touch-none cursor-grab active:cursor-grabbing ${
+                        isBeingDragged
+                          ? 'opacity-25 bg-slate-950 border-teal-500/40'
+                          : 'bg-slate-950/75 border-slate-800 hover:border-teal-400/60 hover:bg-slate-900'
                       }`}
                     >
                       <div
-                        className="grid gap-1"
+                        className="grid gap-1 pointer-events-none"
                         style={{
-                          gridTemplateRows: `repeat(${maxR}, minmax(0, 1fr))`,
-                          gridTemplateColumns: `repeat(${maxC}, minmax(0, 1fr))`,
+                          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                         }}
                       >
-                        {Array.from({ length: maxR }).map((_, pr) =>
-                          Array.from({ length: maxC }).map((__, pc) => {
+                        {Array.from({ length: rows }).map((_, pr) =>
+                          Array.from({ length: cols }).map((__, pc) => {
                             const filled = piece.cells.some(([cr, cc]) => cr === pr && cc === pc);
                             return (
                               <div
@@ -420,7 +520,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
                           })
                         )}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -428,6 +528,45 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
           </div>
         )}
       </div>
+
+      {/* Floating Dragged Piece under Cursor / Finger */}
+      {draggedPiece && dragPos && (
+        <div
+          className="fixed z-[150] pointer-events-none"
+          style={{
+            left: dragPos.x,
+            top: dragPos.y - 24,
+            transform: 'translate(-50%, -50%) scale(1.12)',
+          }}
+        >
+          {(() => {
+            const { rows, cols } = getPieceDims(draggedPiece);
+            return (
+              <div
+                className="grid gap-1 drop-shadow-2xl"
+                style={{
+                  gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                }}
+              >
+                {Array.from({ length: rows }).map((_, pr) =>
+                  Array.from({ length: cols }).map((__, pc) => {
+                    const filled = draggedPiece.cells.some(([cr, cc]) => cr === pr && cc === pc);
+                    return (
+                      <div
+                        key={`${pr}-${pc}`}
+                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md border ${
+                          filled ? `${COLOR_CLASSES[draggedPiece.color]} shadow-xl` : 'bg-transparent border-transparent'
+                        }`}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 };
