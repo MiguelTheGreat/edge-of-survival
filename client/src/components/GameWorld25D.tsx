@@ -4,6 +4,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { STATIONS } from '../data/chapters';
 import { StationConfig, StationId } from '../types/game';
+import { DesolateEnvironment } from './DesolateEnvironment';
 
 export interface ThreatCube {
   id: string;
@@ -662,18 +663,22 @@ const SceneContent: React.FC<GameWorldProps> = ({
 
   return (
     <>
-      <color attach="background" args={['#060a14']} />
-      <fog attach="fog" args={['#060a14', 18, 46]} />
+      <color attach="background" args={['#050914']} />
+      <fog attach="fog" args={['#070d1c', 20, 56]} />
 
-      <ambientLight intensity={0.32} color="#94a3b8" />
+      <hemisphereLight args={['#38bdf8', '#090d16', 0.42]} />
+      <ambientLight intensity={0.22} color="#94a3b8" />
       <directionalLight
-        position={[14, 24, 12]}
-        intensity={0.85}
-        color="#e2e8f0"
+        position={[18, 28, 14]}
+        intensity={0.95}
+        color="#dbeafe"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
+
+      {/* Artistic Desolate Canyon, Ruined Arches, Cables, Braziers & Ash */}
+      <DesolateEnvironment bridgeActive={bridgeActive} ch6Solved={ch6Solved} />
 
       {/* Atmospheric Cavern Dust Motes */}
       <CavernMotes />
