@@ -20,20 +20,20 @@ export const VictoryModal: React.FC<Props> = ({
   onContinueExplore,
 }) => {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-slate-900 border border-emerald-400/60 rounded-3xl p-7 shadow-2xl space-y-5 my-auto">
-        <div className="flex items-center justify-between">
-          <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-300 text-xs font-display tabular-nums font-bold flex items-center gap-1.5">
-            <Award className="w-4 h-4" /> EPILOGUE &amp; CHAPTERS 8, 11, 12 UNLOCKED
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-2.5 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-3xl bg-slate-900 border border-emerald-400/60 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 my-auto max-h-[94dvh] overflow-y-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-300 text-[10px] sm:text-xs font-display tabular-nums font-bold flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" /> EPILOGUE &amp; CH 8, 11, 12 UNLOCKED
           </span>
-          <span className="text-xs font-display tabular-nums text-slate-400">Engineer: {nickname}</span>
+          <span className="text-[11px] sm:text-xs font-display tabular-nums text-slate-400">Engineer: {nickname}</span>
         </div>
 
         <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white">
+          <h2 className="text-2xl sm:text-4xl font-black text-white">
             JOHN: <span className="text-emerald-400">THE MAN OF EDGE</span>
           </h2>
-          <p className="text-sm text-slate-300 mt-1.5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
             In mere milliseconds, the autonomous field sensors coordinated, the hydraulic floodgates roared open
             without a single command from the Capital, and the raging waters safely diverted!
           </p>

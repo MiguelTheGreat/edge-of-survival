@@ -141,8 +141,9 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
       const cellW = rect.width / GRID_SIZE;
       const cellH = rect.height / GRID_SIZE;
 
-      // Slight upward offset so finger/cursor doesn't obscure placement
-      const pointerY = clientY - cellH * 0.6;
+      // Upward offset so finger/cursor doesn't obscure placement (higher on touch screens)
+      const isTouch = window.matchMedia('(pointer: coarse)').matches;
+      const pointerY = clientY - cellH * (isTouch ? 1.25 : 0.6);
       const { rows, cols } = getPieceDims(piece);
 
       const relX = clientX - rect.left;
@@ -315,26 +316,26 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 select-none">
-      <div className="w-full max-w-2xl bg-slate-900 border border-teal-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4 select-none">
+      <div className="w-full max-w-2xl bg-slate-900 border border-teal-400/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95dvh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <Grid3X3 className="w-5 h-5 text-teal-400" />
-            <div>
-              <h2 className="text-lg font-bold text-white">Edge Blocks — Silicon Matrix</h2>
-              <p className="text-xs text-slate-400">
+        <div className="px-3.5 py-3 sm:px-6 sm:py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Grid3X3 className="w-5 h-5 text-teal-400 shrink-0" />
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-bold text-white truncate">Edge Blocks</h2>
+              <p className="hidden sm:block text-xs text-slate-400">
                 Drag blocks from the tray onto the 8×8 grid • Release to drop
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setTab(tab === 'play' ? 'leaderboard' : 'play')}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1.5 sm:px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <Trophy className="w-3.5 h-3.5" />
-              {tab === 'play' ? 'Minigame Ranks' : 'Back to Board'}
+              <span>{tab === 'play' ? 'Ranks' : 'Board'}</span>
             </button>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer">
               <X className="w-5 h-5" />
@@ -343,7 +344,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
         </div>
 
         {tab === 'leaderboard' ? (
-          <div className="p-5 overflow-y-auto space-y-3">
+          <div className="p-3.5 sm:p-5 overflow-y-auto space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold text-amber-300">
                 Separate Edge Blocks Leaderboard
@@ -355,62 +356,65 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
                 <RefreshCw className={`w-4 h-4 ${lbLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-display uppercase">
-                  <th className="py-2 px-2">#</th>
-                  <th className="py-2 px-2">Engineer</th>
-                  <th className="py-2 px-2">Score</th>
-                  <th className="py-2 px-2">Lines</th>
-                  <th className="py-2 px-2">Max Combo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/70">
-                {leaderboard.map((row) => {
-                  const isMe = row.nickname.toLowerCase() === nickname.toLowerCase();
-                  return (
-                    <tr key={row.id} className={isMe ? 'bg-teal-950/40 text-teal-200' : 'text-slate-200'}>
-                      <td className="py-2.5 px-2 font-display font-bold tabular-nums text-amber-400">{row.rank}</td>
-                      <td className="py-2.5 px-2 font-semibold">{row.nickname}</td>
-                      <td className="py-2.5 px-2 font-display font-bold tabular-nums text-teal-300">{row.score}</td>
-                      <td className="py-2.5 px-2 font-display tabular-nums">{row.linesCleared}</td>
-                      <td className="py-2.5 px-2 font-display tabular-nums text-emerald-300">{row.maxCombo}x</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-display uppercase">
+                    <th className="py-2 px-1.5 sm:px-2">#</th>
+                    <th className="py-2 px-1.5 sm:px-2">Engineer</th>
+                    <th className="py-2 px-1.5 sm:px-2">Score</th>
+                    <th className="py-2 px-1.5 sm:px-2">Lines</th>
+                    <th className="py-2 px-1.5 sm:px-2">Combo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {leaderboard.map((row) => {
+                    const isMe = row.nickname.toLowerCase() === nickname.toLowerCase();
+                    return (
+                      <tr key={row.id} className={isMe ? 'bg-teal-950/40 text-teal-200' : 'text-slate-200'}>
+                        <td className="py-2 px-1.5 sm:px-2 font-display font-bold tabular-nums text-amber-400">{row.rank}</td>
+                        <td className="py-2 px-1.5 sm:px-2 font-semibold truncate max-w-[110px] sm:max-w-none">{row.nickname}</td>
+                        <td className="py-2 px-1.5 sm:px-2 font-display font-bold tabular-nums text-teal-300">{row.score}</td>
+                        <td className="py-2 px-1.5 sm:px-2 font-display tabular-nums">{row.linesCleared}</td>
+                        <td className="py-2 px-1.5 sm:px-2 font-display tabular-nums text-emerald-300">{row.maxCombo}x</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <div className="p-5 overflow-y-auto flex flex-col items-center space-y-4">
+          <div className="p-3 sm:p-5 overflow-y-auto flex flex-col items-center space-y-3 sm:space-y-4">
             {/* Score Bar */}
-            <div className="w-full flex items-center justify-between bg-slate-950/75 border border-slate-800 rounded-xl px-4 py-2.5">
+            <div className="w-full flex items-center justify-between bg-slate-950/75 border border-slate-800 rounded-xl px-3 py-2 sm:px-4 sm:py-2.5">
               <div>
-                <span className="text-[11px] text-slate-400 block">SCORE</span>
-                <span className="text-xl font-display font-bold tabular-nums text-teal-300">{score}</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 block">SCORE</span>
+                <span className="text-lg sm:text-xl font-display font-bold tabular-nums text-teal-300">{score}</span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-400 block">LINES CLEARED</span>
-                <span className="text-xl font-display font-bold tabular-nums text-white">{linesCleared}</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 block">LINES</span>
+                <span className="text-lg sm:text-xl font-display font-bold tabular-nums text-white">{linesCleared}</span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-400 block">COMBO</span>
-                <span className="text-xl font-display font-bold tabular-nums text-amber-300">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 block">COMBO</span>
+                <span className="text-lg sm:text-xl font-display font-bold tabular-nums text-amber-300">
                   {combo > 0 ? `${combo}x` : '—'}
                 </span>
               </div>
               <button
                 onClick={handleRestart}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1.5 sm:px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1 cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Reset
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Reset</span>
               </button>
             </div>
 
             {/* 8x8 Grid */}
             <div
               ref={gridRef}
-              className="grid grid-cols-8 gap-1 p-2.5 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner touch-none"
+              className="grid grid-cols-8 gap-1 p-2 sm:p-2.5 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner touch-none w-full max-w-[336px] sm:max-w-none sm:w-auto"
             >
               {grid.map((row, r) =>
                 row.map((cellColor, c) => {
@@ -422,7 +426,7 @@ export const EdgeBlocksMinigameModal: React.FC<Props> = ({ nickname, onClose }) 
                   return (
                     <div
                       key={key}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md border transition-all duration-100 ${
+                      className={`aspect-square w-full sm:w-10 sm:h-10 rounded-md border transition-all duration-100 ${
                         isFlashing
                           ? 'bg-white border-teal-200 scale-110 shadow-lg shadow-white/60'
                           : isPreview

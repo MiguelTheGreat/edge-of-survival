@@ -212,7 +212,7 @@ export function App() {
   }
 
   return (
-    <div className="w-screen h-screen bg-slate-950 relative overflow-hidden select-none">
+    <div className="w-screen h-[100dvh] bg-slate-950 relative overflow-hidden select-none">
       <GameWorld25D
         solvedStations={solvedStations}
         activePuzzle={activePuzzle}

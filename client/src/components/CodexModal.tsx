@@ -28,26 +28,26 @@ export const CodexModal: React.FC<Props> = ({
   const activeUnlocked = isUnlocked(activeEntry.chapterNumber);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
-      <div className="w-full max-w-4xl h-[85vh] bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5 text-cyan-400" />
-            <div>
-              <h2 className="text-lg font-bold text-white">Edge of Survival — Technical Codex</h2>
-              <p className="text-xs text-slate-400">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4">
+      <div className="w-full max-w-4xl h-[92dvh] sm:h-[85vh] bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <BookOpen className="w-5 h-5 text-cyan-400 shrink-0" />
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-bold text-white truncate">Technical Codex</h2>
+              <p className="hidden sm:block text-xs text-slate-400">
                 Chapters 1–12 • Philippine Edge Infrastructure &amp; Academic References
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* Chapter List */}
-          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 overflow-y-auto p-3 space-y-1.5 shrink-0 max-h-44 md:max-h-none">
+          {/* Chapter List: horizontal chip strip on mobile, sidebar on md+ */}
+          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex md:flex-col overflow-x-auto md:overflow-y-auto p-2 sm:p-3 gap-1.5 shrink-0">
             {CODEX_ENTRIES.map((entry) => {
               const unlocked = isUnlocked(entry.chapterNumber);
               const selected = selectedChapter === entry.chapterNumber;
@@ -55,19 +55,22 @@ export const CodexModal: React.FC<Props> = ({
                 <button
                   key={entry.chapterNumber}
                   onClick={() => setSelectedChapter(entry.chapterNumber)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
+                  className={`shrink-0 md:w-full text-left px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs flex items-center justify-between gap-1.5 transition cursor-pointer whitespace-nowrap md:whitespace-normal ${
                     selected
                       ? 'bg-cyan-500/20 border border-cyan-400/60 text-white font-semibold'
                       : 'hover:bg-slate-800/70 text-slate-300 border border-transparent'
                   }`}
                 >
                   <span className="truncate">
-                    Ch {entry.chapterNumber}: {entry.title.split('—')[0]}
+                    <span className="md:hidden">Ch {entry.chapterNumber}</span>
+                    <span className="hidden md:inline">
+                      Ch {entry.chapterNumber}: {entry.title.split('—')[0]}
+                    </span>
                   </span>
                   {unlocked ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   ) : (
-                    <Lock className="w-3.5 h-3.5 text-slate-600 shrink-0 ml-1" />
+                    <Lock className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                   )}
                 </button>
               );
@@ -75,7 +78,7 @@ export const CodexModal: React.FC<Props> = ({
           </div>
 
           {/* Chapter Detail */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
             {!activeUnlocked ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-2">
                 <Lock className="w-10 h-10 text-slate-600" />

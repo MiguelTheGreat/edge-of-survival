@@ -182,9 +182,13 @@ const PlayerJohn: React.FC<PlayerRigProps> = ({
       groupRef.current.position.copy(pos);
     }
 
-    // 45-degree angled isometric-style follow camera (pulls back at Valley Dam for dramatic scale)
+    // 45-degree angled isometric-style follow camera (pulls back at Valley Dam & on portrait phones)
     const inFinalDam = pos.x > 44;
-    const camOffset = inFinalDam ? new THREE.Vector3(1.5, 13.5, 15.2) : new THREE.Vector3(0.6, 10.8, 11.8);
+    const isPortrait = state.size.width < state.size.height;
+    const zoomScale = isPortrait ? 1.34 : 1.0;
+    const camOffset = inFinalDam
+      ? new THREE.Vector3(1.5 * zoomScale, 13.5 * zoomScale, 15.2 * zoomScale)
+      : new THREE.Vector3(0.6 * zoomScale, 10.8 * zoomScale, 11.8 * zoomScale);
     const camTarget = new THREE.Vector3(pos.x + camOffset.x, pos.y + camOffset.y, pos.z + camOffset.z);
     camera.position.lerp(camTarget, 4.5 * dt);
     camera.lookAt(pos.x + (inFinalDam ? 1.2 : 0), pos.y + 0.9, pos.z);
