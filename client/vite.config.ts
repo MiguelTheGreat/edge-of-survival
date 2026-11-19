@@ -8,6 +8,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+          'net-vendor': ['socket.io-client', 'lucide-react'],
+        },
+      },
+    },
   },
 });

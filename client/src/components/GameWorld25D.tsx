@@ -981,7 +981,12 @@ const SceneContent: React.FC<GameWorldProps> = ({
 export const GameWorld25D: React.FC<GameWorldProps> = (props) => {
   return (
     <div className="w-full h-full relative">
-      <Canvas shadows camera={{ fov: 45, near: 0.1, far: 120, position: [-15, 10.8, 15.8] }}>
+      <Canvas
+        shadows
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: 'high-performance', antialias: true }}
+        camera={{ fov: 45, near: 0.1, far: 120, position: [-15, 10.8, 15.8] }}
+      >
         <SceneContent {...props} />
       </Canvas>
     </div>

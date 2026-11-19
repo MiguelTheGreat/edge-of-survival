@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -278,16 +278,65 @@ export const DesolateEnvironment: React.FC<{ bridgeActive: boolean; ch6Solved: b
     return items;
   }, []);
 
+  const spires = useMemo(() => canyonRocks.filter((r) => r.isSpire), [canyonRocks]);
+  const boulders = useMemo(() => canyonRocks.filter((r) => !r.isSpire), [canyonRocks]);
+
+  const spireRef = useRef<THREE.InstancedMesh>(null);
+  const boulderRef = useRef<THREE.InstancedMesh>(null);
+  const rubbleRef = useRef<THREE.InstancedMesh>(null);
+
+  useEffect(() => {
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+
+    if (spireRef.current) {
+      spires.forEach((r, i) => {
+        dummy.position.set(...r.pos);
+        dummy.rotation.set(...r.rot);
+        dummy.scale.set(...r.scale);
+        dummy.updateMatrix();
+        spireRef.current!.setMatrixAt(i, dummy.matrix);
+        spireRef.current!.setColorAt(i, color.set(r.color));
+      });
+      spireRef.current.instanceMatrix.needsUpdate = true;
+      if (spireRef.current.instanceColor) spireRef.current.instanceColor.needsUpdate = true;
+    }
+
+    if (boulderRef.current) {
+      boulders.forEach((r, i) => {
+        dummy.position.set(...r.pos);
+        dummy.rotation.set(...r.rot);
+        dummy.scale.set(...r.scale);
+        dummy.updateMatrix();
+        boulderRef.current!.setMatrixAt(i, dummy.matrix);
+        boulderRef.current!.setColorAt(i, color.set(r.color));
+      });
+      boulderRef.current.instanceMatrix.needsUpdate = true;
+      if (boulderRef.current.instanceColor) boulderRef.current.instanceColor.needsUpdate = true;
+    }
+
+    if (rubbleRef.current) {
+      rubbleClusters.forEach((r, i) => {
+        dummy.position.set(...r.pos);
+        dummy.rotation.set(...r.rot);
+        dummy.scale.set(...r.scale);
+        dummy.updateMatrix();
+        rubbleRef.current!.setMatrixAt(i, dummy.matrix);
+      });
+      rubbleRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [spires, boulders, rubbleClusters]);
+
   return (
     <group>
       {/* Eerie Eclipse Moon over the Desolate Valley Dam */}
       <group position={[66, 21, -24]}>
         <mesh>
-          <sphereGeometry args={[3.4, 32, 32]} />
+          <sphereGeometry args={[3.4, 24, 24]} />
           <meshBasicMaterial color="#0f172a" />
         </mesh>
         <mesh>
-          <ringGeometry args={[3.45, 3.85, 64]} />
+          <ringGeometry args={[3.45, 3.85, 48]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} transparent opacity={0.75} />
         </mesh>
         <pointLight position={[-4, -2, 6]} color="#38bdf8" intensity={6} distance={70} />
@@ -299,32 +348,23 @@ export const DesolateEnvironment: React.FC<{ bridgeActive: boolean; ch6Solved: b
         <meshStandardMaterial color="#030712" roughness={1} />
       </mesh>
 
-      {/* Jagged Basalt Cliffs, Rock Spires & Platform Under-Skirts */}
-      {canyonRocks.map((rock, idx) => (
-        <mesh
-          key={idx}
-          position={rock.pos}
-          scale={rock.scale}
-          rotation={rock.rot}
-          castShadow
-          receiveShadow
-        >
-          {rock.isSpire ? (
-            <coneGeometry args={[0.75, 1.4, 6]} />
-          ) : (
-            <dodecahedronGeometry args={[0.85, 0]} />
-          )}
-          <meshStandardMaterial color={rock.color} roughness={0.92} metalness={0.12} flatShading />
-        </mesh>
-      ))}
+      {/* Instanced Basalt Spires (1 draw call) */}
+      <instancedMesh ref={spireRef} args={[undefined, undefined, spires.length]} receiveShadow>
+        <coneGeometry args={[0.75, 1.4, 6]} />
+        <meshStandardMaterial roughness={0.92} metalness={0.12} flatShading />
+      </instancedMesh>
 
-      {/* Scattered Basalt Rubble on Ruin Edges */}
-      {rubbleClusters.map((r, idx) => (
-        <mesh key={idx} position={r.pos} scale={r.scale} rotation={r.rot} castShadow receiveShadow>
-          <dodecahedronGeometry args={[0.6, 0]} />
-          <meshStandardMaterial color="#243047" roughness={0.88} flatShading />
-        </mesh>
-      ))}
+      {/* Instanced Basalt Cliff Boulders (1 draw call) */}
+      <instancedMesh ref={boulderRef} args={[undefined, undefined, boulders.length]} receiveShadow>
+        <dodecahedronGeometry args={[0.85, 0]} />
+        <meshStandardMaterial roughness={0.92} metalness={0.12} flatShading />
+      </instancedMesh>
+
+      {/* Instanced Basalt Rubble (1 draw call) */}
+      <instancedMesh ref={rubbleRef} args={[undefined, undefined, rubbleClusters.length]} castShadow receiveShadow>
+        <dodecahedronGeometry args={[0.6, 0]} />
+        <meshStandardMaterial color="#243047" roughness={0.88} flatShading />
+      </instancedMesh>
 
       {/* Ruined Gothic-SciFi Ribbed Archways spanning Act I & Act II */}
       <RuinedArch position={[-11, 0, 0]} glowColor="#0ea5e9" broken />
